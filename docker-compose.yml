@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  feedaka:
+    build:
+      context: .
+    volumes:
+      - ./feedaka.db:/app/feedaka.db
+    ports:
+      - '127.0.0.1:8002:8080'
+    environment:
+      TZ: Asia/Tokyo
+      FEEDAKA_BASE_PATH: ''
+      FEEDAKA_PORT: '8080'
+    restart: always

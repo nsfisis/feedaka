@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{.BasePath}}/static/style.css">
+    <link rel="icon" href="{{.BasePath}}/static/favicon.svg">
+    <title>{{.Title}} | feedaka</title>
+  </head>
+  <body class="bg-gray-100 text-gray-900 font-sans antialiased">
+    <div class="mx-auto mt-10 px-6">
+      <h1 class="text-4xl font-bold underline mb-8">{{.Title}}</h1>
+      <main>
+        <ul class="list-none pl-5">
+          {{- range .Feeds -}}
+          <li class="mb-5">
+            <a href="{{.URL}}" target="_blank" rel="noreferrer" class="text-blue-500 hover:text-blue-600 hover:underline">{{.Title}}</a>
+            <button data-feed-id="{{.ID}}" class="js-unread-feed ml-4 py-1 px-0 w-6 h-6 rounded border-2 border-green-500 bg-green-500 hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200"></button>
+          </li>
+          <ul class="list-none pl-5 mt-4">
+            {{- range .Articles -}}
+            <li class="mb-3">
+              <a href="{{.URL}}" target="_blank" rel="noreferrer" class="text-blue-500 hover:text-blue-600 hover:underline">{{.Title}}</a>
+              <button data-article-id="{{.ID}}" class="js-unread-article ml-4 py-1 px-0 w-6 h-6 rounded border-2 border-green-500 bg-green-500 hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200"></button>
+            </li>
+            {{- end -}}
+          </ul>
+          {{- end -}}
+        </ul>
+      </main>
+    </div>
+    <script>window.BASE_PATH = `{{.BasePath}}`;</script>
+    <script src="{{.BasePath}}/static/index.js" type="module" defer></script>
+  </body>
+</html>

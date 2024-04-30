@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{.BasePath}}/static/style.css">
+    <link rel="icon" href="{{.BasePath}}/static/favicon.svg">
+    <title>Settings | feedaka</title>
+  </head>
+  <body class="bg-gray-100 text-gray-900 font-sans antialiased">
+    <div class="mx-auto mt-10 px-6">
+      <h1 class="text-4xl font-bold underline mb-8">Settings</h1>
+      <main>
+        <h2 class="text-2xl mb-3">URLs</h2>
+        <form method="POST" class="space-y-4">
+          <textarea name="urls" rows="10" cols="80" class="w-full p-2 border rounded resize-y">{{.URLs}}</textarea>
+          <input type="submit" value="Submit" class="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" />
+        </form>
+      </main>
+    </div>
+  </body>
+</html>
