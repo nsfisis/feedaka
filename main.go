@@ -441,8 +441,7 @@ func apiPutArticle(c echo.Context, op string) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func scheduled(d time.Duration, fn func(), doneC chan struct{}, ctx context.Context) {
-	defer close(doneC)
+func scheduled(ctx context.Context, d time.Duration, fn func()) {
 	ticker := time.NewTicker(d)
 	go func() {
 		for {
@@ -498,15 +497,13 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	doneC := make(chan struct{})
-	scheduled(1*time.Hour, func() {
+	scheduled(ctx, 1*time.Hour, func() {
 		err := fetchAllFeeds(ctx)
 		if err != nil {
 			log.Printf("Failed to fetch feeds: %v\n", err)
 		}
-	}, doneC, ctx)
+	})
 
 	err = http.ListenAndServe(":"+port, http.StripPrefix(basePath, e))
 	log.Println(err)
-	<-doneC
 }
