@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package feedaka.v1;
+
+option go_package = "github.com/nsfisis/feedaka/backend/grpc;grpc";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Feed
+message Feed {
+  int32 id = 1;
+  string url = 2;
+  string title = 3;
+  google.protobuf.Timestamp fetched_at = 4;
+  int32 unread_count = 5;
+}
+
+// Article
+message Article {
+  int32 id = 1;
+  int32 feed_id = 2;
+  string guid = 3;
+  string title = 4;
+  string url = 5;
+  bool is_read = 6;
+  Feed feed = 7;  // Optional: populated when needed for context
+}
+
+message GetFeedsRequest {}
+
+message GetFeedsResponse {
+  repeated Feed feeds = 1;
+}
+
+message GetUnreadArticlesRequest {
+  int32 limit = 1;  // Optional: default 100
+}
+
+message GetUnreadArticlesResponse {
+  repeated Article articles = 1;
+}
+
+message GetReadArticlesRequest {
+  int32 limit = 1;  // Optional: default 100
+}
+
+message GetReadArticlesResponse {
+  repeated Article articles = 1;
+}
+
+message AddFeedRequest {
+  string url = 1;
+}
+
+message AddFeedResponse {
+  Feed feed = 1;
+}
+
+message RemoveFeedRequest {
+  int32 id = 1;
+}
+
+message MarkArticleReadRequest {
+  int32 id = 1;
+}
+
+message MarkArticleUnreadRequest {
+  int32 id = 1;
+}
+
+message MarkFeedReadRequest {
+  int32 id = 1;
+}
+
+message MarkFeedUnreadRequest {
+  int32 id = 1;
+}
+
+service FeedakaService {
+  // Feeds
+  rpc GetFeeds(GetFeedsRequest) returns (GetFeedsResponse);
+  rpc AddFeed(AddFeedRequest) returns (AddFeedResponse);
+  rpc RemoveFeed(RemoveFeedRequest) returns (google.protobuf.Empty);
+
+  // Articles
+  rpc GetUnreadArticles(GetUnreadArticlesRequest)
+      returns (GetUnreadArticlesResponse);
+  rpc GetReadArticles(GetReadArticlesRequest) returns (GetReadArticlesResponse);
+
+  // State management
+  rpc MarkArticleRead(MarkArticleReadRequest) returns (google.protobuf.Empty);
+  rpc MarkArticleUnread(MarkArticleUnreadRequest)
+      returns (google.protobuf.Empty);
+
+  rpc MarkFeedRead(MarkFeedReadRequest) returns (google.protobuf.Empty);
+  rpc MarkFeedUnread(MarkFeedUnreadRequest) returns (google.protobuf.Empty);
+}
