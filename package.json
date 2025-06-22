@@ -1,16 +1,19 @@
 {
-  "name": "feedaka",
-  "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "tailwindcss -i ./css/style.css -o ./static/style.css",
-    "watch": "tailwindcss -i ./css/style.css -o ./static/style.css --watch"
-  },
-  "author": "nsfisis",
-  "license": "MIT",
-  "devDependencies": {
-    "@tailwindcss/cli": "^4.1.10",
-    "tailwindcss": "^4.1.10"
-  }
+	"name": "feedaka",
+	"version": "0.1.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"check": "biome check --write .",
+		"fmt": "biome check .",
+		"build": "tailwindcss -i ./css/style.css -o ./static/style.css",
+		"watch": "tailwindcss -i ./css/style.css -o ./static/style.css --watch"
+	},
+	"author": "nsfisis",
+	"license": "MIT",
+	"devDependencies": {
+		"@biomejs/biome": "2.0.4",
+		"@tailwindcss/cli": "^4.1.10",
+		"tailwindcss": "^4.1.10"
+	}
 }
