@@ -4,10 +4,10 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"check": "biome check --write .",
-		"fmt": "biome check .",
-		"build": "tailwindcss -i ./css/style.css -o ./static/style.css",
-		"watch": "tailwindcss -i ./css/style.css -o ./static/style.css --watch"
+		"check": "biome check .",
+		"fmt": "biome check --write .",
+		"build": "tailwindcss -i ./css/style.css -o ./dist/style.css",
+		"watch": "tailwindcss -i ./css/style.css -o ./dist/style.css --watch"
 	},
 	"author": "nsfisis",
 	"license": "MIT",

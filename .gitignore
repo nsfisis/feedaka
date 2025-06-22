@@ -1,7 +1,6 @@
-/node_modules
+/backend/feedaka
+/frontend/node_modules
+/frontend/dist
 
-/feedaka
 /feedaka.db
 /feedaka.db-journal
-
-/static/style.css
