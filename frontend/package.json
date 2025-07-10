@@ -4,19 +4,25 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"build": "tsc -b && vite build",
+		"build": "npm run graphql-codegen && tsc -b && vite build",
 		"check": "biome check .",
 		"dev": "vite",
 		"fix": "biome check --write .",
+		"graphql-codegen": "graphql-codegen --config graphql-codegen.ts",
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@tailwindcss/vite": "^4.1.11",
+		"graphql": "^16.11.0",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
+		"tailwindcss": "^4.1.11",
 		"wouter": "^3.7.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.1",
+		"@graphql-codegen/cli": "^5.0.7",
+		"@graphql-codegen/client-preset": "^4.8.3",
 		"@types/react": "^19.1.8",
 		"@types/react-dom": "^19.1.6",
 		"@vitejs/plugin-react": "^4.6.0",
