@@ -503,7 +503,7 @@ func main() {
 	e.GET("/static/*", echo.WrapHandler(http.FileServer(http.FS(staticFS))))
 
 	// Setup GraphQL server
-	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &graphql.Resolver{}}))
+	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &graphql.Resolver{DB: db}}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
