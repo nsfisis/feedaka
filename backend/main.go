@@ -14,12 +14,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/hashicorp/go-multierror"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mmcdole/gofeed"
+	"github.com/vektah/gqlparser/v2/ast"
 	"golang.org/x/exp/slices"
+
+	"undef.ninja/x/feedaka/graphql"
 )
 
 var (
@@ -494,6 +501,24 @@ func main() {
 	e.PUT("/api/articles/:articleID/unread", apiPutArticleUnread)
 
 	e.GET("/static/*", echo.WrapHandler(http.FileServer(http.FS(staticFS))))
+
+	// Setup GraphQL server
+	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &graphql.Resolver{}}))
+
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
+
+	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
+
+	srv.Use(extension.Introspection{})
+	srv.Use(extension.AutomaticPersistedQuery{
+		Cache: lru.New[string](100),
+	})
+
+	// GraphQL endpoints
+	e.POST("/graphql", echo.WrapHandler(srv))
+	e.GET("/graphql", echo.WrapHandler(srv))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
