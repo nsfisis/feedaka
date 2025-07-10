@@ -10,8 +10,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -487,6 +489,7 @@ func main() {
 	e.Renderer = t
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
 
 	e.GET("/", getIndex)
 	e.GET("/settings", getSettings)
@@ -529,6 +532,28 @@ func main() {
 		}
 	})
 
-	err = http.ListenAndServe(":"+port, http.StripPrefix(basePath, e))
-	log.Println(err)
+	// Setup graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		log.Println("Shutting down server...")
+		cancel()
+
+		// Give time for graceful shutdown
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+
+		if err := e.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Error during shutdown: %v\n", err)
+		}
+	}()
+
+	log.Printf("Server starting on port %s...\n", port)
+	err = e.Start(":" + port)
+	if err != nil && err != http.ErrServerClosed {
+		log.Printf("Server error: %v\n", err)
+	}
+	log.Println("Server stopped")
 }
