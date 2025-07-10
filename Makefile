@@ -4,11 +4,11 @@ serve: build
 build:
 	cd frontend && npm run check
 	cd frontend && npm run build
-	cd backend && go build -o feedaka main.go
+	cd backend && just build
 
 fmt:
 	cd frontend && npm run fmt
-	cd backend && go fmt .
+	cd backend && just fmt
 
 docker-build: fmt
 	docker build -t feedaka .

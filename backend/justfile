@@ -1,0 +1,8 @@
+build:
+    go build -o feedaka .
+
+fmt:
+    go fmt .
+
+check:
+    go build -o /dev/null .
