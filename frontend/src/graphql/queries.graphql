@@ -1,0 +1,73 @@
+query GetFeeds {
+	feeds {
+		id
+		url
+		title
+		fetchedAt
+		articles {
+			id
+			isRead
+		}
+	}
+}
+
+query GetUnreadArticles {
+	unreadArticles {
+		id
+		feedId
+		guid
+		title
+		url
+		isRead
+		feed {
+			id
+			title
+		}
+	}
+}
+
+query GetReadArticles {
+	readArticles {
+		id
+		feedId
+		guid
+		title
+		url
+		isRead
+		feed {
+			id
+			title
+		}
+	}
+}
+
+query GetFeed($id: ID!) {
+	feed(id: $id) {
+		id
+		url
+		title
+		fetchedAt
+		articles {
+			id
+			guid
+			title
+			url
+			isRead
+		}
+	}
+}
+
+query GetArticle($id: ID!) {
+	article(id: $id) {
+		id
+		feedId
+		guid
+		title
+		url
+		isRead
+		feed {
+			id
+			title
+		}
+	}
+}

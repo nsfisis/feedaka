@@ -1,0 +1,52 @@
+mutation AddFeed($url: String!) {
+	addFeed(url: $url) {
+		id
+		url
+		title
+		fetchedAt
+	}
+}
+
+mutation RemoveFeed($id: ID!) {
+	removeFeed(id: $id)
+}
+
+mutation MarkArticleRead($id: ID!) {
+	markArticleRead(id: $id) {
+		id
+		feedId
+		guid
+		title
+		url
+		isRead
+	}
+}
+
+mutation MarkArticleUnread($id: ID!) {
+	markArticleUnread(id: $id) {
+		id
+		feedId
+		guid
+		title
+		url
+		isRead
+	}
+}
+
+mutation MarkFeedRead($id: ID!) {
+	markFeedRead(id: $id) {
+		id
+		url
+		title
+		fetchedAt
+	}
+}
+
+mutation MarkFeedUnread($id: ID!) {
+	markFeedUnread(id: $id) {
+		id
+		url
+		title
+		fetchedAt
+	}
+}

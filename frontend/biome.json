@@ -4,5 +4,9 @@
 		"enabled": true,
 		"clientKind": "git",
 		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": ["**", "!src/graphql/generated/*.ts"],
+		"ignoreUnknown": true
 	}
 }
