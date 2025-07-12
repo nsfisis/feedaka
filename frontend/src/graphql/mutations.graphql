@@ -7,8 +7,8 @@ mutation AddFeed($url: String!) {
 	}
 }
 
-mutation RemoveFeed($id: ID!) {
-	removeFeed(id: $id)
+mutation UnsubscribeFeed($id: ID!) {
+	unsubscribeFeed(id: $id)
 }
 
 mutation MarkArticleRead($id: ID!) {

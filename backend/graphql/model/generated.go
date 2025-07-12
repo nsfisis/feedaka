@@ -30,6 +30,8 @@ type Feed struct {
 	Title string `json:"title"`
 	// Timestamp when the feed was last fetched
 	FetchedAt string `json:"fetchedAt"`
+	// Whether the user is currently subscribed to this feed
+	IsSubscribed bool `json:"isSubscribed"`
 	// Articles belonging to this feed
 	Articles []*Article `json:"articles"`
 }

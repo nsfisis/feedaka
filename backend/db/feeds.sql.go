@@ -12,7 +12,7 @@ import (
 const createFeed = `-- name: CreateFeed :one
 INSERT INTO feeds (url, title, fetched_at)
 VALUES (?, ?, ?)
-RETURNING id, url, title, fetched_at
+RETURNING id, url, title, fetched_at, is_subscribed
 `
 
 type CreateFeedParams struct {
@@ -29,6 +29,7 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		&i.Url,
 		&i.Title,
 		&i.FetchedAt,
+		&i.IsSubscribed,
 	)
 	return i, err
 }
@@ -44,7 +45,7 @@ func (q *Queries) DeleteFeed(ctx context.Context, id int64) error {
 }
 
 const getFeed = `-- name: GetFeed :one
-SELECT id, url, title, fetched_at
+SELECT id, url, title, fetched_at, is_subscribed
 FROM feeds
 WHERE id = ?
 `
@@ -57,12 +58,13 @@ func (q *Queries) GetFeed(ctx context.Context, id int64) (Feed, error) {
 		&i.Url,
 		&i.Title,
 		&i.FetchedAt,
+		&i.IsSubscribed,
 	)
 	return i, err
 }
 
 const getFeedByURL = `-- name: GetFeedByURL :one
-SELECT id, url, title, fetched_at
+SELECT id, url, title, fetched_at, is_subscribed
 FROM feeds
 WHERE url = ?
 `
@@ -75,13 +77,15 @@ func (q *Queries) GetFeedByURL(ctx context.Context, url string) (Feed, error) {
 		&i.Url,
 		&i.Title,
 		&i.FetchedAt,
+		&i.IsSubscribed,
 	)
 	return i, err
 }
 
 const getFeeds = `-- name: GetFeeds :many
-SELECT id, url, title, fetched_at
+SELECT id, url, title, fetched_at, is_subscribed
 FROM feeds
+WHERE is_subscribed = 1
 ORDER BY id
 `
 
@@ -99,6 +103,7 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
 			&i.Url,
 			&i.Title,
 			&i.FetchedAt,
+			&i.IsSubscribed,
 		); err != nil {
 			return nil, err
 		}
@@ -116,6 +121,7 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
 const getFeedsToFetch = `-- name: GetFeedsToFetch :many
 SELECT id, url, fetched_at
 FROM feeds
+WHERE is_subscribed = 1
 `
 
 type GetFeedsToFetchRow struct {
@@ -145,6 +151,17 @@ func (q *Queries) GetFeedsToFetch(ctx context.Context) ([]GetFeedsToFetchRow, er
 		return nil, err
 	}
 	return items, nil
+}
+
+const unsubscribeFeed = `-- name: UnsubscribeFeed :exec
+UPDATE feeds
+SET is_subscribed = 0
+WHERE id = ?
+`
+
+func (q *Queries) UnsubscribeFeed(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, unsubscribeFeed, id)
+	return err
 }
 
 const updateFeedMetadata = `-- name: UpdateFeedMetadata :exec

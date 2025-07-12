@@ -1,11 +1,12 @@
 -- name: GetFeed :one
-SELECT id, url, title, fetched_at
+SELECT id, url, title, fetched_at, is_subscribed
 FROM feeds
 WHERE id = ?;
 
 -- name: GetFeeds :many
-SELECT id, url, title, fetched_at
+SELECT id, url, title, fetched_at, is_subscribed
 FROM feeds
+WHERE is_subscribed = 1
 ORDER BY id;
 
 -- name: CreateFeed :one
@@ -23,10 +24,16 @@ DELETE FROM feeds
 WHERE id = ?;
 
 -- name: GetFeedByURL :one
-SELECT id, url, title, fetched_at
+SELECT id, url, title, fetched_at, is_subscribed
 FROM feeds
 WHERE url = ?;
 
 -- name: GetFeedsToFetch :many
 SELECT id, url, fetched_at
-FROM feeds;
+FROM feeds
+WHERE is_subscribed = 1;
+
+-- name: UnsubscribeFeed :exec
+UPDATE feeds
+SET is_subscribed = 0
+WHERE id = ?;

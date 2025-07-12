@@ -1,7 +1,7 @@
 -- name: GetArticle :one
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
 WHERE a.id = ?;
@@ -9,20 +9,20 @@ WHERE a.id = ?;
 -- name: GetUnreadArticles :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 0
+WHERE a.is_read = 0 AND f.is_subscribed = 1
 ORDER BY a.id DESC
 LIMIT 100;
 
 -- name: GetReadArticles :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 1
+WHERE a.is_read = 1 AND f.is_subscribed = 1
 ORDER BY a.id DESC
 LIMIT 100;
 

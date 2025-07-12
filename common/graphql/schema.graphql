@@ -25,6 +25,11 @@ type Feed {
   fetchedAt: DateTime!
 
   """
+  Whether the user is currently subscribed to this feed
+  """
+  isSubscribed: Boolean!
+
+  """
   Articles belonging to this feed
   """
   articles: [Article!]!
@@ -110,9 +115,9 @@ type Mutation {
   addFeed(url: String!): Feed!
 
   """
-  Remove a feed subscription and all its articles
+  Unsubscribe from a feed (preserves feed and article data)
   """
-  removeFeed(id: ID!): Boolean!
+  unsubscribeFeed(id: ID!): Boolean!
 
   """
   Mark an article as read

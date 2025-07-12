@@ -75,22 +75,23 @@ func (q *Queries) DeleteArticlesByFeed(ctx context.Context, feedID int64) error 
 const getArticle = `-- name: GetArticle :one
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
 WHERE a.id = ?
 `
 
 type GetArticleRow struct {
-	ID        int64
-	FeedID    int64
-	Guid      string
-	Title     string
-	Url       string
-	IsRead    int64
-	FeedID2   int64
-	FeedUrl   string
-	FeedTitle string
+	ID               int64
+	FeedID           int64
+	Guid             string
+	Title            string
+	Url              string
+	IsRead           int64
+	FeedID2          int64
+	FeedUrl          string
+	FeedTitle        string
+	FeedIsSubscribed int64
 }
 
 func (q *Queries) GetArticle(ctx context.Context, id int64) (GetArticleRow, error) {
@@ -106,6 +107,7 @@ func (q *Queries) GetArticle(ctx context.Context, id int64) (GetArticleRow, erro
 		&i.FeedID2,
 		&i.FeedUrl,
 		&i.FeedTitle,
+		&i.FeedIsSubscribed,
 	)
 	return i, err
 }
@@ -179,24 +181,25 @@ func (q *Queries) GetArticlesByFeed(ctx context.Context, feedID int64) ([]Articl
 const getReadArticles = `-- name: GetReadArticles :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 1
+WHERE a.is_read = 1 AND f.is_subscribed = 1
 ORDER BY a.id DESC
 LIMIT 100
 `
 
 type GetReadArticlesRow struct {
-	ID        int64
-	FeedID    int64
-	Guid      string
-	Title     string
-	Url       string
-	IsRead    int64
-	FeedID2   int64
-	FeedUrl   string
-	FeedTitle string
+	ID               int64
+	FeedID           int64
+	Guid             string
+	Title            string
+	Url              string
+	IsRead           int64
+	FeedID2          int64
+	FeedUrl          string
+	FeedTitle        string
+	FeedIsSubscribed int64
 }
 
 func (q *Queries) GetReadArticles(ctx context.Context) ([]GetReadArticlesRow, error) {
@@ -218,6 +221,7 @@ func (q *Queries) GetReadArticles(ctx context.Context) ([]GetReadArticlesRow, er
 			&i.FeedID2,
 			&i.FeedUrl,
 			&i.FeedTitle,
+			&i.FeedIsSubscribed,
 		); err != nil {
 			return nil, err
 		}
@@ -235,24 +239,25 @@ func (q *Queries) GetReadArticles(ctx context.Context) ([]GetReadArticlesRow, er
 const getUnreadArticles = `-- name: GetUnreadArticles :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 0
+WHERE a.is_read = 0 AND f.is_subscribed = 1
 ORDER BY a.id DESC
 LIMIT 100
 `
 
 type GetUnreadArticlesRow struct {
-	ID        int64
-	FeedID    int64
-	Guid      string
-	Title     string
-	Url       string
-	IsRead    int64
-	FeedID2   int64
-	FeedUrl   string
-	FeedTitle string
+	ID               int64
+	FeedID           int64
+	Guid             string
+	Title            string
+	Url              string
+	IsRead           int64
+	FeedID2          int64
+	FeedUrl          string
+	FeedTitle        string
+	FeedIsSubscribed int64
 }
 
 func (q *Queries) GetUnreadArticles(ctx context.Context) ([]GetUnreadArticlesRow, error) {
@@ -274,6 +279,7 @@ func (q *Queries) GetUnreadArticles(ctx context.Context) ([]GetUnreadArticlesRow
 			&i.FeedID2,
 			&i.FeedUrl,
 			&i.FeedTitle,
+			&i.FeedIsSubscribed,
 		); err != nil {
 			return nil, err
 		}

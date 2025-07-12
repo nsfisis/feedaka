@@ -9,17 +9,17 @@ import {
 	GetFeedsDocument,
 	MarkFeedReadDocument,
 	MarkFeedUnreadDocument,
-	RemoveFeedDocument,
+	UnsubscribeFeedDocument,
 } from "../graphql/generated/graphql";
 
 interface Props {
-	onFeedDeleted?: () => void;
+	onFeedUnsubscribed?: () => void;
 	selectedFeeds?: Set<string>;
 	onSelectFeed?: (feedId: string, selected: boolean) => void;
 }
 
 export function FeedList({
-	onFeedDeleted,
+	onFeedUnsubscribed,
 	selectedFeeds,
 	onSelectFeed,
 }: Props) {
@@ -29,7 +29,7 @@ export function FeedList({
 
 	const [, markFeedRead] = useMutation(MarkFeedReadDocument);
 	const [, markFeedUnread] = useMutation(MarkFeedUnreadDocument);
-	const [, removeFeed] = useMutation(RemoveFeedDocument);
+	const [, unsubscribeFeed] = useMutation(UnsubscribeFeedDocument);
 
 	const handleMarkAllRead = async (feedId: string) => {
 		await markFeedRead({ id: feedId });
@@ -39,13 +39,13 @@ export function FeedList({
 		await markFeedUnread({ id: feedId });
 	};
 
-	const handleDeleteFeed = async (feedId: string) => {
+	const handleUnsubscribeFeed = async (feedId: string) => {
 		const confirmed = window.confirm(
-			"Are you sure you want to delete this feed?",
+			"Are you sure you want to unsubscribe from this feed?",
 		);
 		if (confirmed) {
-			await removeFeed({ id: feedId });
-			onFeedDeleted?.();
+			await unsubscribeFeed({ id: feedId });
+			onFeedUnsubscribed?.();
 		}
 	};
 
@@ -134,9 +134,9 @@ export function FeedList({
 								</button>
 								<button
 									type="button"
-									onClick={() => handleDeleteFeed(feed.id)}
+									onClick={() => handleUnsubscribeFeed(feed.id)}
 									className="rounded p-2 text-red-600 hover:bg-red-50 hover:text-red-700"
-									title="Delete feed"
+									title="Unsubscribe from feed"
 								>
 									<FontAwesomeIcon icon={faTrash} />
 								</button>

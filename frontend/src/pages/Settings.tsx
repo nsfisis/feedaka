@@ -5,7 +5,7 @@ import {
 	GetFeedsDocument,
 	MarkFeedReadDocument,
 	MarkFeedUnreadDocument,
-	RemoveFeedDocument,
+	UnsubscribeFeedDocument,
 } from "../graphql/generated/graphql";
 
 export function Settings() {
@@ -14,7 +14,7 @@ export function Settings() {
 	});
 	const [, markFeedRead] = useMutation(MarkFeedReadDocument);
 	const [, markFeedUnread] = useMutation(MarkFeedUnreadDocument);
-	const [, removeFeed] = useMutation(RemoveFeedDocument);
+	const [, unsubscribeFeed] = useMutation(UnsubscribeFeedDocument);
 
 	const [selectedFeeds, setSelectedFeeds] = useState<Set<string>>(new Set());
 
@@ -22,7 +22,7 @@ export function Settings() {
 		refetchFeeds();
 	};
 
-	const handleFeedDeleted = () => {
+	const handleFeedUnsubscribed = () => {
 		refetchFeeds();
 		setSelectedFeeds(new Set());
 	};
@@ -62,17 +62,17 @@ export function Settings() {
 		refetchFeeds();
 	};
 
-	const handleBulkDelete = async () => {
+	const handleBulkUnsubscribe = async () => {
 		const confirmed = window.confirm(
-			`Are you sure you want to delete ${selectedFeeds.size} selected feeds?`,
+			`Are you sure you want to unsubscribe from ${selectedFeeds.size} selected feeds?`,
 		);
 		if (!confirmed) return;
 
 		const promises = Array.from(selectedFeeds).map((feedId) =>
-			removeFeed({ id: feedId }),
+			unsubscribeFeed({ id: feedId }),
 		);
 		await Promise.all(promises);
-		handleFeedDeleted();
+		handleFeedUnsubscribed();
 	};
 
 	const hasFeeds = feedsData?.feeds && feedsData.feeds.length > 0;
@@ -82,10 +82,10 @@ export function Settings() {
 		<div className="mx-auto max-w-4xl">
 			<h1 className="mb-6 text-2xl font-bold text-gray-900">Feed Settings</h1>
 
-			{/* Add New Feed Section */}
+			{/* Subscribe to New Feed Section */}
 			<div className="mb-8">
 				<h2 className="mb-4 text-xl font-semibold text-gray-800">
-					Add New Feed
+					Subscribe to New Feed
 				</h2>
 				<AddFeedForm onFeedAdded={handleFeedAdded} />
 			</div>
@@ -134,10 +134,10 @@ export function Settings() {
 								</button>
 								<button
 									type="button"
-									onClick={handleBulkDelete}
+									onClick={handleBulkUnsubscribe}
 									className="rounded px-3 py-1 text-sm font-medium text-red-700 hover:bg-red-100"
 								>
-									Delete Selected
+									Unsubscribe Selected
 								</button>
 							</div>
 						</div>
@@ -145,7 +145,7 @@ export function Settings() {
 				)}
 
 				<FeedList
-					onFeedDeleted={handleFeedDeleted}
+					onFeedUnsubscribed={handleFeedUnsubscribed}
 					selectedFeeds={selectedFeeds}
 					onSelectFeed={handleSelectFeed}
 				/>

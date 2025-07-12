@@ -52,47 +52,24 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 	}
 
 	return &model.Feed{
-		ID:        strconv.FormatInt(dbFeed.ID, 10),
-		URL:       dbFeed.Url,
-		Title:     dbFeed.Title,
-		FetchedAt: dbFeed.FetchedAt,
+		ID:           strconv.FormatInt(dbFeed.ID, 10),
+		URL:          dbFeed.Url,
+		Title:        dbFeed.Title,
+		FetchedAt:    dbFeed.FetchedAt,
+		IsSubscribed: dbFeed.IsSubscribed == 1,
 	}, nil
 }
 
-// RemoveFeed is the resolver for the removeFeed field.
-func (r *mutationResolver) RemoveFeed(ctx context.Context, id string) (bool, error) {
+// UnsubscribeFeed is the resolver for the unsubscribeFeed field.
+func (r *mutationResolver) UnsubscribeFeed(ctx context.Context, id string) (bool, error) {
 	feedID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return false, fmt.Errorf("invalid feed ID: %w", err)
 	}
 
-	// Start a transaction
-	tx, err := r.DB.Begin()
+	err = r.Queries.UnsubscribeFeed(ctx, feedID)
 	if err != nil {
-		return false, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	qtx := r.Queries.WithTx(tx)
-
-	// Delete articles first (foreign key constraint)
-	err = qtx.DeleteArticlesByFeed(ctx, feedID)
-	if err != nil {
-		return false, fmt.Errorf("failed to delete articles: %w", err)
-	}
-
-	// Delete the feed
-	err = qtx.DeleteFeed(ctx, feedID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, fmt.Errorf("feed not found")
-		}
-		return false, fmt.Errorf("failed to delete feed: %w", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return false, fmt.Errorf("failed to commit transaction: %w", err)
+		return false, fmt.Errorf("failed to unsubscribe from feed: %w", err)
 	}
 
 	return true, nil
@@ -182,10 +159,11 @@ func (r *queryResolver) Feeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 	for _, dbFeed := range dbFeeds {
 		feeds = append(feeds, &model.Feed{
-			ID:        strconv.FormatInt(dbFeed.ID, 10),
-			URL:       dbFeed.Url,
-			Title:     dbFeed.Title,
-			FetchedAt: dbFeed.FetchedAt,
+			ID:           strconv.FormatInt(dbFeed.ID, 10),
+			URL:          dbFeed.Url,
+			Title:        dbFeed.Title,
+			FetchedAt:    dbFeed.FetchedAt,
+			IsSubscribed: dbFeed.IsSubscribed == 1,
 		})
 	}
 
@@ -209,9 +187,10 @@ func (r *queryResolver) UnreadArticles(ctx context.Context) ([]*model.Article, e
 			URL:    row.Url,
 			IsRead: row.IsRead == 1,
 			Feed: &model.Feed{
-				ID:    strconv.FormatInt(row.FeedID2, 10),
-				URL:   row.FeedUrl,
-				Title: row.FeedTitle,
+				ID:           strconv.FormatInt(row.FeedID2, 10),
+				URL:          row.FeedUrl,
+				Title:        row.FeedTitle,
+				IsSubscribed: row.FeedIsSubscribed == 1,
 			},
 		})
 	}
@@ -236,9 +215,10 @@ func (r *queryResolver) ReadArticles(ctx context.Context) ([]*model.Article, err
 			URL:    row.Url,
 			IsRead: row.IsRead == 1,
 			Feed: &model.Feed{
-				ID:    strconv.FormatInt(row.FeedID2, 10),
-				URL:   row.FeedUrl,
-				Title: row.FeedTitle,
+				ID:           strconv.FormatInt(row.FeedID2, 10),
+				URL:          row.FeedUrl,
+				Title:        row.FeedTitle,
+				IsSubscribed: row.FeedIsSubscribed == 1,
 			},
 		})
 	}
@@ -262,10 +242,11 @@ func (r *queryResolver) Feed(ctx context.Context, id string) (*model.Feed, error
 	}
 
 	return &model.Feed{
-		ID:        strconv.FormatInt(dbFeed.ID, 10),
-		URL:       dbFeed.Url,
-		Title:     dbFeed.Title,
-		FetchedAt: dbFeed.FetchedAt,
+		ID:           strconv.FormatInt(dbFeed.ID, 10),
+		URL:          dbFeed.Url,
+		Title:        dbFeed.Title,
+		FetchedAt:    dbFeed.FetchedAt,
+		IsSubscribed: dbFeed.IsSubscribed == 1,
 	}, nil
 }
 

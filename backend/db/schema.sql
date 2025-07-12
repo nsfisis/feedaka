@@ -1,9 +1,10 @@
 -- Feeds
 CREATE TABLE IF NOT EXISTS feeds (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    url        TEXT NOT NULL,
-    title      TEXT NOT NULL,
-    fetched_at TEXT NOT NULL
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    url           TEXT NOT NULL,
+    title         TEXT NOT NULL,
+    fetched_at    TEXT NOT NULL,
+    is_subscribed INTEGER NOT NULL DEFAULT 1
 );
 
 -- Articles

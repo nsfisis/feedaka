@@ -28,7 +28,9 @@ export function AddFeedForm({ onFeedAdded }: Props) {
 				onFeedAdded?.();
 			}
 		} catch (error) {
-			setError(error instanceof Error ? error.message : "Failed to add feed");
+			setError(
+				error instanceof Error ? error.message : "Failed to subscribe to feed",
+			);
 		}
 	};
 
@@ -47,7 +49,7 @@ export function AddFeedForm({ onFeedAdded }: Props) {
 		<form onSubmit={handleSubmit} className="space-y-4 p-4">
 			<div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
 				<h3 className="text-lg font-semibold text-gray-900 mb-4">
-					Add New Feed
+					Subscribe to New Feed
 				</h3>
 				<div className="flex gap-2">
 					<div className="flex-1">
@@ -80,7 +82,7 @@ export function AddFeedForm({ onFeedAdded }: Props) {
 						) : (
 							<FontAwesomeIcon icon={faPlus} className="mr-2" />
 						)}
-						Add Feed
+						Subscribe
 					</button>
 				</div>
 			</div>

@@ -4,6 +4,7 @@ query GetFeeds {
 		url
 		title
 		fetchedAt
+		isSubscribed
 		articles {
 			id
 			isRead
@@ -22,6 +23,7 @@ query GetUnreadArticles {
 		feed {
 			id
 			title
+			isSubscribed
 		}
 	}
 }
@@ -37,6 +39,7 @@ query GetReadArticles {
 		feed {
 			id
 			title
+			isSubscribed
 		}
 	}
 }
@@ -47,6 +50,7 @@ query GetFeed($id: ID!) {
 		url
 		title
 		fetchedAt
+		isSubscribed
 		articles {
 			id
 			guid
@@ -68,6 +72,7 @@ query GetArticle($id: ID!) {
 		feed {
 			id
 			title
+			isSubscribed
 		}
 	}
 }

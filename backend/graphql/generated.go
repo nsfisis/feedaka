@@ -57,11 +57,12 @@ type ComplexityRoot struct {
 	}
 
 	Feed struct {
-		Articles  func(childComplexity int) int
-		FetchedAt func(childComplexity int) int
-		ID        func(childComplexity int) int
-		Title     func(childComplexity int) int
-		URL       func(childComplexity int) int
+		Articles     func(childComplexity int) int
+		FetchedAt    func(childComplexity int) int
+		ID           func(childComplexity int) int
+		IsSubscribed func(childComplexity int) int
+		Title        func(childComplexity int) int
+		URL          func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -70,7 +71,7 @@ type ComplexityRoot struct {
 		MarkArticleUnread func(childComplexity int, id string) int
 		MarkFeedRead      func(childComplexity int, id string) int
 		MarkFeedUnread    func(childComplexity int, id string) int
-		RemoveFeed        func(childComplexity int, id string) int
+		UnsubscribeFeed   func(childComplexity int, id string) int
 	}
 
 	Query struct {
@@ -84,7 +85,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	AddFeed(ctx context.Context, url string) (*model.Feed, error)
-	RemoveFeed(ctx context.Context, id string) (bool, error)
+	UnsubscribeFeed(ctx context.Context, id string) (bool, error)
 	MarkArticleRead(ctx context.Context, id string) (*model.Article, error)
 	MarkArticleUnread(ctx context.Context, id string) (*model.Article, error)
 	MarkFeedRead(ctx context.Context, id string) (*model.Feed, error)
@@ -187,6 +188,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Feed.ID(childComplexity), true
 
+	case "Feed.isSubscribed":
+		if e.complexity.Feed.IsSubscribed == nil {
+			break
+		}
+
+		return e.complexity.Feed.IsSubscribed(childComplexity), true
+
 	case "Feed.title":
 		if e.complexity.Feed.Title == nil {
 			break
@@ -261,17 +269,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.MarkFeedUnread(childComplexity, args["id"].(string)), true
 
-	case "Mutation.removeFeed":
-		if e.complexity.Mutation.RemoveFeed == nil {
+	case "Mutation.unsubscribeFeed":
+		if e.complexity.Mutation.UnsubscribeFeed == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_removeFeed_args(ctx, rawArgs)
+		args, err := ec.field_Mutation_unsubscribeFeed_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RemoveFeed(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.UnsubscribeFeed(childComplexity, args["id"].(string)), true
 
 	case "Query.article":
 		if e.complexity.Query.Article == nil {
@@ -449,6 +457,11 @@ type Feed {
   fetchedAt: DateTime!
 
   """
+  Whether the user is currently subscribed to this feed
+  """
+  isSubscribed: Boolean!
+
+  """
   Articles belonging to this feed
   """
   articles: [Article!]!
@@ -534,9 +547,9 @@ type Mutation {
   addFeed(url: String!): Feed!
 
   """
-  Remove a feed subscription and all its articles
+  Unsubscribe from a feed (preserves feed and article data)
   """
-  removeFeed(id: ID!): Boolean!
+  unsubscribeFeed(id: ID!): Boolean!
 
   """
   Mark an article as read
@@ -706,17 +719,17 @@ func (ec *executionContext) field_Mutation_markFeedUnread_argsID(
 	return zeroVal, nil
 }
 
-func (ec *executionContext) field_Mutation_removeFeed_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Mutation_unsubscribeFeed_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_removeFeed_argsID(ctx, rawArgs)
+	arg0, err := ec.field_Mutation_unsubscribeFeed_argsID(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
 	args["id"] = arg0
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_removeFeed_argsID(
+func (ec *executionContext) field_Mutation_unsubscribeFeed_argsID(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
@@ -1249,6 +1262,8 @@ func (ec *executionContext) fieldContext_Article_feed(_ context.Context, field g
 				return ec.fieldContext_Feed_title(ctx, field)
 			case "fetchedAt":
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
+			case "isSubscribed":
+				return ec.fieldContext_Feed_isSubscribed(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -1434,6 +1449,50 @@ func (ec *executionContext) fieldContext_Feed_fetchedAt(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Feed_isSubscribed(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Feed_isSubscribed(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsSubscribed, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Feed_isSubscribed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Feed_articles(ctx, field)
 	if err != nil {
@@ -1541,6 +1600,8 @@ func (ec *executionContext) fieldContext_Mutation_addFeed(ctx context.Context, f
 				return ec.fieldContext_Feed_title(ctx, field)
 			case "fetchedAt":
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
+			case "isSubscribed":
+				return ec.fieldContext_Feed_isSubscribed(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -1561,8 +1622,8 @@ func (ec *executionContext) fieldContext_Mutation_addFeed(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_removeFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Mutation_removeFeed(ctx, field)
+func (ec *executionContext) _Mutation_unsubscribeFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_unsubscribeFeed(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -1575,7 +1636,7 @@ func (ec *executionContext) _Mutation_removeFeed(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RemoveFeed(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Mutation().UnsubscribeFeed(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1592,7 +1653,7 @@ func (ec *executionContext) _Mutation_removeFeed(ctx context.Context, field grap
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Mutation_removeFeed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_unsubscribeFeed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -1609,7 +1670,7 @@ func (ec *executionContext) fieldContext_Mutation_removeFeed(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_removeFeed_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_unsubscribeFeed_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1805,6 +1866,8 @@ func (ec *executionContext) fieldContext_Mutation_markFeedRead(ctx context.Conte
 				return ec.fieldContext_Feed_title(ctx, field)
 			case "fetchedAt":
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
+			case "isSubscribed":
+				return ec.fieldContext_Feed_isSubscribed(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -1872,6 +1935,8 @@ func (ec *executionContext) fieldContext_Mutation_markFeedUnread(ctx context.Con
 				return ec.fieldContext_Feed_title(ctx, field)
 			case "fetchedAt":
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
+			case "isSubscribed":
+				return ec.fieldContext_Feed_isSubscribed(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -1939,6 +2004,8 @@ func (ec *executionContext) fieldContext_Query_feeds(_ context.Context, field gr
 				return ec.fieldContext_Feed_title(ctx, field)
 			case "fetchedAt":
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
+			case "isSubscribed":
+				return ec.fieldContext_Feed_isSubscribed(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -2112,6 +2179,8 @@ func (ec *executionContext) fieldContext_Query_feed(ctx context.Context, field g
 				return ec.fieldContext_Feed_title(ctx, field)
 			case "fetchedAt":
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
+			case "isSubscribed":
+				return ec.fieldContext_Feed_isSubscribed(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -4390,6 +4459,11 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "isSubscribed":
+			out.Values[i] = ec._Feed_isSubscribed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "articles":
 			out.Values[i] = ec._Feed_articles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4444,9 +4518,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "removeFeed":
+		case "unsubscribeFeed":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_removeFeed(ctx, field)
+				return ec._Mutation_unsubscribeFeed(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
