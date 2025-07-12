@@ -1,4 +1,4 @@
-build:
+build: generate
     go build -o feedaka .
 
 fmt:
@@ -6,3 +6,6 @@ fmt:
 
 check:
     go build -o /dev/null .
+
+generate:
+    go generate ./...

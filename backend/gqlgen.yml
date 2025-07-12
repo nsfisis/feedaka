@@ -11,9 +11,9 @@ model:
   filename: graphql/model/generated.go
 
 resolver:
-  package: graphql
-  layout: single-file
-  filename: graphql/resolvers.go
+  package: resolver
+  layout: follow-schema
+  dir: graphql/resolver
 
 models:
   ID:

@@ -23,11 +23,17 @@ import (
 	"github.com/mmcdole/gofeed"
 	"github.com/vektah/gqlparser/v2/ast"
 
+	"undef.ninja/x/feedaka/db"
 	"undef.ninja/x/feedaka/graphql"
+	"undef.ninja/x/feedaka/graphql/resolver"
 )
 
+//go:generate go tool sqlc generate
+//go:generate go tool gqlgen generate
+
 var (
-	db *sql.DB
+	database *sql.DB
+	queries  *db.Queries
 	//go:embed static/*
 	staticFS embed.FS
 )
@@ -53,7 +59,7 @@ CREATE TABLE IF NOT EXISTS articles (
 	return err
 }
 
-func fetchOneFeed(feedID int, url string, ctx context.Context) error {
+func fetchOneFeed(feedID int64, url string, ctx context.Context) error {
 	log.Printf("Fetching %s...\n", url)
 	fp := gofeed.NewParser()
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -62,50 +68,41 @@ func fetchOneFeed(feedID int, url string, ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Failed to fetch %s: %v\n", url, err)
 	}
-	_, err = db.Exec(
-		`UPDATE feeds SET title = ?, fetched_at = ? WHERE id = ?`,
-		feed.Title,
-		time.Now().UTC().Format(time.RFC3339),
-		feedID,
-	)
+	err = queries.UpdateFeedMetadata(ctx, db.UpdateFeedMetadataParams{
+		Title:     feed.Title,
+		FetchedAt: time.Now().UTC().Format(time.RFC3339),
+		ID:        feedID,
+	})
 	if err != nil {
 		return err
 	}
-	rows, err := db.Query(`SELECT guid FROM articles WHERE feed_id = ?`, feedID)
+	guids, err := queries.GetArticleGUIDsByFeed(ctx, feedID)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 	existingArticleGUIDs := make(map[string]bool)
-	for rows.Next() {
-		var guid string
-		err := rows.Scan(&guid)
-		if err != nil {
-			return err
-		}
+	for _, guid := range guids {
 		existingArticleGUIDs[guid] = true
 	}
 	for _, item := range feed.Items {
 		if existingArticleGUIDs[item.GUID] {
-			_, err := db.Exec(
-				`UPDATE articles SET title = ?, url = ? WHERE feed_id = ? AND guid = ?`,
-				item.Title,
-				item.Link,
-				feedID,
-				item.GUID,
-			)
+			err := queries.UpdateArticle(ctx, db.UpdateArticleParams{
+				Title:  item.Title,
+				Url:    item.Link,
+				FeedID: feedID,
+				Guid:   item.GUID,
+			})
 			if err != nil {
 				return err
 			}
 		} else {
-			_, err := db.Exec(
-				`INSERT INTO articles (feed_id, guid, title, url, is_read) VALUES (?, ?, ?, ?, ?)`,
-				feedID,
-				item.GUID,
-				item.Title,
-				item.Link,
-				0,
-			)
+			_, err := queries.CreateArticle(ctx, db.CreateArticleParams{
+				FeedID: feedID,
+				Guid:   item.GUID,
+				Title:  item.Title,
+				Url:    item.Link,
+				IsRead: 0,
+			})
 			if err != nil {
 				return err
 			}
@@ -114,23 +111,15 @@ func fetchOneFeed(feedID int, url string, ctx context.Context) error {
 	return nil
 }
 
-func listFeedsToBeFetched() (map[int]string, error) {
-	rows, err := db.Query(`SELECT id, url, fetched_at FROM feeds`)
+func listFeedsToBeFetched(ctx context.Context) (map[int64]string, error) {
+	feeds, err := queries.GetFeedsToFetch(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	feeds := make(map[int]string)
-	for rows.Next() {
-		var feedID int
-		var url string
-		var fetchedAt string
-		err := rows.Scan(&feedID, &url, &fetchedAt)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fetchedAtTime, err := time.Parse(time.RFC3339, fetchedAt)
+	result := make(map[int64]string)
+	for _, feed := range feeds {
+		fetchedAtTime, err := time.Parse(time.RFC3339, feed.FetchedAt)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -138,13 +127,13 @@ func listFeedsToBeFetched() (map[int]string, error) {
 		if now.Sub(fetchedAtTime).Minutes() <= 10 {
 			continue
 		}
-		feeds[feedID] = url
+		result[feed.ID] = feed.Url
 	}
-	return feeds, nil
+	return result, nil
 }
 
 func fetchAllFeeds(ctx context.Context) error {
-	feeds, err := listFeedsToBeFetched()
+	feeds, err := listFeedsToBeFetched(ctx)
 	if err != nil {
 		return err
 	}
@@ -178,16 +167,18 @@ func main() {
 	port := os.Getenv("FEEDAKA_PORT")
 
 	var err error
-	db, err = sql.Open("sqlite3", "feedaka.db")
+	database, err = sql.Open("sqlite3", "feedaka.db")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer database.Close()
 
-	err = initDB(db)
+	err = initDB(database)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	queries = db.New(database)
 
 	e := echo.New()
 
@@ -198,7 +189,7 @@ func main() {
 	e.GET("/static/*", echo.WrapHandler(http.FileServer(http.FS(staticFS))))
 
 	// Setup GraphQL server
-	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &graphql.Resolver{DB: db}}))
+	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver.Resolver{DB: database, Queries: queries}}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
