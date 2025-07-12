@@ -30,7 +30,7 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 	// Insert the feed into the database
 	result, err := r.DB.Exec(
 		"INSERT INTO feeds (url, title, fetched_at) VALUES (?, ?, ?)",
-		url, feed.Title, time.Now().Unix(),
+		url, feed.Title, time.Now().UTC().Format(time.RFC3339),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert feed: %w", err)
@@ -183,12 +183,10 @@ func (r *queryResolver) Feeds(ctx context.Context) ([]*model.Feed, error) {
 	var feeds []*model.Feed
 	for rows.Next() {
 		var feed model.Feed
-		var fetchedAt int64
-		err := rows.Scan(&feed.ID, &feed.URL, &feed.Title, &fetchedAt)
+		err := rows.Scan(&feed.ID, &feed.URL, &feed.Title, &feed.FetchedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan feed: %w", err)
 		}
-		feed.FetchedAt = time.Unix(fetchedAt, 0).Format(time.RFC3339)
 		feeds = append(feeds, &feed)
 	}
 
@@ -287,18 +285,16 @@ func (r *queryResolver) Feed(ctx context.Context, id string) (*model.Feed, error
 	}
 
 	var feed model.Feed
-	var fetchedAt int64
 	err = r.DB.QueryRow(
 		"SELECT id, url, title, fetched_at FROM feeds WHERE id = ?",
 		feedID,
-	).Scan(&feed.ID, &feed.URL, &feed.Title, &fetchedAt)
+	).Scan(&feed.ID, &feed.URL, &feed.Title, &feed.FetchedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("feed not found")
 		}
 		return nil, fmt.Errorf("failed to query feed: %w", err)
 	}
-	feed.FetchedAt = time.Unix(fetchedAt, 0).Format(time.RFC3339)
 
 	return &feed, nil
 }
