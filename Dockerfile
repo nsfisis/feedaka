@@ -6,11 +6,12 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
 COPY frontend/ ./
+COPY common/graphql/schema.graphql src/graphql/schema.graphql
 RUN npm run build
 
 ##########################################
 
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.24-alpine AS backend-builder
 
 WORKDIR /app
 
@@ -19,7 +20,7 @@ COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
 COPY backend/ ./
-COPY --from=frontend-builder /app/dist/style.css ./static/style.css
+COPY --from=frontend-builder /app/dist/ ./public/
 RUN CGO_ENABLED=1 GOOS=linux go build -o feedaka main.go
 
 ##########################################

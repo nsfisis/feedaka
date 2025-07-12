@@ -34,28 +34,14 @@ import (
 var (
 	database *sql.DB
 	queries  *db.Queries
-	//go:embed static/*
-	staticFS embed.FS
+	//go:embed public/*
+	publicFS embed.FS
+	//go:embed db/schema.sql
+	dbSchema string
 )
 
 func initDB(db *sql.DB) error {
-	_, err := db.Exec(`
-CREATE TABLE IF NOT EXISTS feeds (
-	id         INTEGER PRIMARY KEY AUTOINCREMENT,
-	url        TEXT NOT NULL,
-	title      TEXT NOT NULL,
-	fetched_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS articles (
-	id      INTEGER PRIMARY KEY AUTOINCREMENT,
-	feed_id INTEGER NOT NULL,
-	guid    TEXT NOT NULL,
-	title   TEXT NOT NULL,
-	url     TEXT NOT NULL,
-	is_read INTEGER NOT NULL
-);
-`)
+	_, err := db.Exec(dbSchema)
 	return err
 }
 
@@ -186,7 +172,11 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	e.GET("/static/*", echo.WrapHandler(http.FileServer(http.FS(staticFS))))
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		HTML5:      true,
+		Root:       "public",
+		Filesystem: http.FS(publicFS),
+	}))
 
 	// Setup GraphQL server
 	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver.Resolver{DB: database, Queries: queries}}))

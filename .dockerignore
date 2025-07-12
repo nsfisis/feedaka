@@ -1,6 +1,4 @@
 /backend/feedaka
-/frontend/node_modules
+/data/
 /frontend/dist
-
-/feedaka.db
-/feedaka.db-journal
+/frontend/node_modules

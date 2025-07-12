@@ -4,138 +4,138 @@ scalar DateTime
 Represents a feed subscription in the system
 """
 type Feed {
-  """
-  Unique identifier for the feed
-  """
-  id: ID!
+	"""
+	Unique identifier for the feed
+	"""
+	id: ID!
 
-  """
-  URL of the RSS/Atom feed
-  """
-  url: String!
+	"""
+	URL of the RSS/Atom feed
+	"""
+	url: String!
 
-  """
-  Title of the feed (extracted from feed metadata)
-  """
-  title: String!
+	"""
+	Title of the feed (extracted from feed metadata)
+	"""
+	title: String!
 
-  """
-  Timestamp when the feed was last fetched
-  """
-  fetchedAt: DateTime!
+	"""
+	Timestamp when the feed was last fetched
+	"""
+	fetchedAt: DateTime!
 
-  """
-  Whether the user is currently subscribed to this feed
-  """
-  isSubscribed: Boolean!
+	"""
+	Whether the user is currently subscribed to this feed
+	"""
+	isSubscribed: Boolean!
 
-  """
-  Articles belonging to this feed
-  """
-  articles: [Article!]!
+	"""
+	Articles belonging to this feed
+	"""
+	articles: [Article!]!
 }
 
 """
 Represents an individual article/post from a feed
 """
 type Article {
-  """
-  Unique identifier for the article
-  """
-  id: ID!
+	"""
+	Unique identifier for the article
+	"""
+	id: ID!
 
-  """
-  ID of the feed this article belongs to
-  """
-  feedId: ID!
+	"""
+	ID of the feed this article belongs to
+	"""
+	feedId: ID!
 
-  """
-  GUID from the RSS/Atom feed (unique identifier from feed)
-  """
-  guid: String!
+	"""
+	GUID from the RSS/Atom feed (unique identifier from feed)
+	"""
+	guid: String!
 
-  """
-  Title of the article
-  """
-  title: String!
+	"""
+	Title of the article
+	"""
+	title: String!
 
-  """
-  URL/link to the original article
-  """
-  url: String!
+	"""
+	URL/link to the original article
+	"""
+	url: String!
 
-  """
-  Whether the article has been marked as read
-  """
-  isRead: Boolean!
+	"""
+	Whether the article has been marked as read
+	"""
+	isRead: Boolean!
 
-  """
-  The feed this article belongs to
-  """
-  feed: Feed!
+	"""
+	The feed this article belongs to
+	"""
+	feed: Feed!
 }
 
 """
 Root query type for reading data
 """
 type Query {
-  """
-  Get all feeds with their metadata
-  """
-  feeds: [Feed!]!
+	"""
+	Get all feeds with their metadata
+	"""
+	feeds: [Feed!]!
 
-  """
-  Get all unread articles across all feeds
-  """
-  unreadArticles: [Article!]!
+	"""
+	Get all unread articles across all feeds
+	"""
+	unreadArticles: [Article!]!
 
-  """
-  Get all read articles across all feeds
-  """
-  readArticles: [Article!]!
+	"""
+	Get all read articles across all feeds
+	"""
+	readArticles: [Article!]!
 
-  """
-  Get a specific feed by ID
-  """
-  feed(id: ID!): Feed
+	"""
+	Get a specific feed by ID
+	"""
+	feed(id: ID!): Feed
 
-  """
-  Get a specific article by ID
-  """
-  article(id: ID!): Article
+	"""
+	Get a specific article by ID
+	"""
+	article(id: ID!): Article
 }
 
 """
 Root mutation type for modifying data
 """
 type Mutation {
-  """
-  Add a new feed subscription
-  """
-  addFeed(url: String!): Feed!
+	"""
+	Add a new feed subscription
+	"""
+	addFeed(url: String!): Feed!
 
-  """
-  Unsubscribe from a feed (preserves feed and article data)
-  """
-  unsubscribeFeed(id: ID!): Boolean!
+	"""
+	Unsubscribe from a feed (preserves feed and article data)
+	"""
+	unsubscribeFeed(id: ID!): Boolean!
 
-  """
-  Mark an article as read
-  """
-  markArticleRead(id: ID!): Article!
+	"""
+	Mark an article as read
+	"""
+	markArticleRead(id: ID!): Article!
 
-  """
-  Mark an article as unread
-  """
-  markArticleUnread(id: ID!): Article!
+	"""
+	Mark an article as unread
+	"""
+	markArticleUnread(id: ID!): Article!
 
-  """
-  Mark all articles in a feed as read
-  """
-  markFeedRead(id: ID!): Feed!
+	"""
+	Mark all articles in a feed as read
+	"""
+	markFeedRead(id: ID!): Feed!
 
-  """
-  Mark all articles in a feed as unread
-  """
-  markFeedUnread(id: ID!): Feed!
+	"""
+	Mark all articles in a feed as unread
+	"""
+	markFeedUnread(id: ID!): Feed!
 }

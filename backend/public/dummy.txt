@@ -1,0 +1,4 @@
+The public directory stores the build artifacts of the frontend.
+However, in the local environment, the frontend side runs a development server to serve those files, so this public directory is not used.
+Go does not allow specifying an empty directory with go:embed, so we place a dummy file here.
+This dummy file is not used in production builds.
