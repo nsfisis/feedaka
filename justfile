@@ -15,6 +15,3 @@ fmt:
 check:
     cd frontend && npm run check
     cd backend && just check
-
-docker-build: fmt
-    docker build -t feedaka .

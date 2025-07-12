@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -36,14 +37,7 @@ var (
 	queries  *db.Queries
 	//go:embed public/*
 	publicFS embed.FS
-	//go:embed db/schema.sql
-	dbSchema string
 )
-
-func initDB(db *sql.DB) error {
-	_, err := db.Exec(dbSchema)
-	return err
-}
 
 func fetchOneFeed(feedID int64, url string, ctx context.Context) error {
 	log.Printf("Fetching %s...\n", url)
@@ -150,7 +144,14 @@ func scheduled(ctx context.Context, d time.Duration, fn func()) {
 }
 
 func main() {
+	// Parse command line flags
+	var migrate = flag.Bool("migrate", false, "Run database migrations")
+	flag.Parse()
+
 	port := os.Getenv("FEEDAKA_PORT")
+	if port == "" {
+		port = "8080"
+	}
 
 	var err error
 	database, err = sql.Open("sqlite3", "feedaka.db")
@@ -159,7 +160,18 @@ func main() {
 	}
 	defer database.Close()
 
-	err = initDB(database)
+	// Migration mode
+	if *migrate {
+		log.Println("Running database migrations...")
+		err = db.RunMigrations(database)
+		if err != nil {
+			log.Fatalf("Migration failed: %v", err)
+		}
+		log.Println("Migrations completed successfully")
+		return
+	}
+
+	err = db.ValidateSchemaVersion(database)
 	if err != nil {
 		log.Fatal(err)
 	}
