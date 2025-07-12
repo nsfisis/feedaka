@@ -29,6 +29,7 @@ FROM alpine
 
 WORKDIR /app
 COPY --from=backend-builder /app/feedaka /app
+RUN mkdir -p /app/data
 
 EXPOSE 8080
 CMD ["/app/feedaka"]

@@ -154,7 +154,7 @@ func main() {
 	}
 
 	var err error
-	database, err = sql.Open("sqlite3", "feedaka.db")
+	database, err = sql.Open("sqlite3", "data/feedaka.db")
 	if err != nil {
 		log.Fatal(err)
 	}
