@@ -1,3 +1,6 @@
+list:
+    @just -l
+
 serve: build
     FEEDAKA_BASE_PATH="" FEEDAKA_PORT=8080 ./backend/feedaka
 
