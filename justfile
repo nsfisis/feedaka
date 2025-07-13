@@ -2,9 +2,9 @@ list:
     @just -l
 
 serve:
-    FEEDAKA_BASE_PATH="" FEEDAKA_PORT=8080 ./backend/feedaka
+    FEEDAKA_PORT=8080 ./backend/feedaka
 
-build:
+build: generate
     cd frontend && npm run build
     cd backend && just build
 
@@ -15,3 +15,7 @@ fmt:
 check:
     cd frontend && npm run check
     cd backend && just check
+
+generate:
+    cd frontend && npm run generate
+    cd backend && just generate

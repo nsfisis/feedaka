@@ -4,10 +4,11 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"build": "npm run graphql-codegen && tsc -b && vite build",
+		"build": "tsc -b && vite build",
 		"check": "biome check .",
 		"dev": "vite",
 		"fix": "biome check --write .",
+		"generate": "npm run graphql-codegen",
 		"graphql-codegen": "graphql-codegen --config graphql-codegen.ts",
 		"preview": "vite preview"
 	},

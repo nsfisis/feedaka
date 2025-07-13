@@ -1,4 +1,7 @@
-build: generate
+list:
+    @just -l
+
+build:
     go build -o feedaka .
 
 fmt:
