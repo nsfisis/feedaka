@@ -22,7 +22,7 @@ export function MenuItem({ path, label, icon }: Props) {
 			}`}
 		>
 			<FontAwesomeIcon icon={icon} />
-			<span>{label}</span>
+			<span className="hidden sm:inline">{label}</span>
 		</Link>
 	);
 }
