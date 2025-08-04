@@ -26,9 +26,7 @@ export function ReadArticles() {
 					</p>
 				)}
 			</div>
-			{data?.readArticles && (
-				<ArticleList articles={data.readArticles} showReadStatus={true} />
-			)}
+			{data?.readArticles && <ArticleList articles={data.readArticles} />}
 		</div>
 	);
 }

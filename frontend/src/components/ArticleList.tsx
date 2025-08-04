@@ -9,10 +9,9 @@ interface Props {
 		| GetUnreadArticlesQuery["unreadArticles"]
 		| GetReadArticlesQuery["readArticles"]
 	>;
-	showReadStatus?: boolean;
 }
 
-export function ArticleList({ articles, showReadStatus = true }: Props) {
+export function ArticleList({ articles }: Props) {
 	if (articles.length === 0) {
 		return (
 			<div className="p-4 text-center text-gray-500">No articles found.</div>
@@ -51,11 +50,7 @@ export function ArticleList({ articles, showReadStatus = true }: Props) {
 					</h3>
 					<div className="space-y-1">
 						{feedArticles.map((article) => (
-							<ArticleItem
-								key={article.id}
-								article={article}
-								showReadStatus={showReadStatus}
-							/>
+							<ArticleItem key={article.id} article={article} />
 						))}
 					</div>
 				</div>

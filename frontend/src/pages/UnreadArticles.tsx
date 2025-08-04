@@ -26,9 +26,7 @@ export function UnreadArticles() {
 					</p>
 				)}
 			</div>
-			{data?.unreadArticles && (
-				<ArticleList articles={data.unreadArticles} showReadStatus={true} />
-			)}
+			{data?.unreadArticles && <ArticleList articles={data.unreadArticles} />}
 		</div>
 	);
 }

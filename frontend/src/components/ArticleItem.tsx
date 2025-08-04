@@ -18,10 +18,9 @@ type Article = NonNullable<
 
 interface Props {
 	article: Article;
-	showReadStatus?: boolean;
 }
 
-export function ArticleItem({ article, showReadStatus = true }: Props) {
+export function ArticleItem({ article }: Props) {
 	const [, markArticleRead] = useMutation(MarkArticleReadDocument);
 	const [, markArticleUnread] = useMutation(MarkArticleUnreadDocument);
 
@@ -66,23 +65,21 @@ export function ArticleItem({ article, showReadStatus = true }: Props) {
 					: "border-blue-200 bg-blue-50"
 			}`}
 		>
-			{showReadStatus && (
-				<button
-					type="button"
-					onClick={() => handleToggleRead(article.id, optimisticArticle.isRead)}
-					className={`flex-shrink-0 rounded p-1 transition-colors ${
-						optimisticArticle.isRead
-							? "text-gray-400 hover:text-gray-600"
-							: "text-blue-600 hover:text-blue-700"
-					}`}
-					title={optimisticArticle.isRead ? "Mark as unread" : "Mark as read"}
-				>
-					<FontAwesomeIcon
-						icon={optimisticArticle.isRead ? faCheck : faCircle}
-						className="w-4 h-4"
-					/>
-				</button>
-			)}
+			<button
+				type="button"
+				onClick={() => handleToggleRead(article.id, optimisticArticle.isRead)}
+				className={`flex-shrink-0 rounded p-1 transition-colors ${
+					optimisticArticle.isRead
+						? "text-gray-400 hover:text-gray-600"
+						: "text-blue-600 hover:text-blue-700"
+				}`}
+				title={optimisticArticle.isRead ? "Mark as unread" : "Mark as read"}
+			>
+				<FontAwesomeIcon
+					icon={optimisticArticle.isRead ? faCheck : faCircle}
+					className="w-4 h-4"
+				/>
+			</button>
 			<div className="flex-1 min-w-0">
 				<button
 					type="button"
