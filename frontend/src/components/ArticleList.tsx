@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
 	GetReadArticlesQuery,
 	GetUnreadArticlesQuery,
@@ -9,17 +10,32 @@ interface Props {
 		| GetUnreadArticlesQuery["unreadArticles"]
 		| GetReadArticlesQuery["readArticles"]
 	>;
+	isReadView?: boolean;
 }
 
-export function ArticleList({ articles }: Props) {
-	if (articles.length === 0) {
+export function ArticleList({ articles, isReadView }: Props) {
+	const [hiddenArticleIds, setHiddenArticleIds] = useState<Set<string>>(
+		new Set(),
+	);
+
+	const handleArticleReadChange = (articleId: string, isRead: boolean) => {
+		if (isReadView !== isRead) {
+			setHiddenArticleIds((prev) => new Set(prev).add(articleId));
+		}
+	};
+
+	const visibleArticles = articles.filter(
+		(article) => !hiddenArticleIds.has(article.id),
+	);
+
+	if (visibleArticles.length === 0) {
 		return (
 			<div className="p-4 text-center text-gray-500">No articles found.</div>
 		);
 	}
 
 	// Group articles by feed
-	const articlesByFeed = articles.reduce(
+	const articlesByFeed = visibleArticles.reduce(
 		(acc, article) => {
 			const feedId = article.feed.id;
 			if (!acc[feedId]) {
@@ -50,7 +66,11 @@ export function ArticleList({ articles }: Props) {
 					</h3>
 					<div className="space-y-1">
 						{feedArticles.map((article) => (
-							<ArticleItem key={article.id} article={article} />
+							<ArticleItem
+								key={article.id}
+								article={article}
+								onReadChange={handleArticleReadChange}
+							/>
 						))}
 					</div>
 				</div>
