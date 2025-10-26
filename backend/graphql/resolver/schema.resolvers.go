@@ -31,6 +31,7 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 		Url:       url,
 		Title:     feed.Title,
 		FetchedAt: time.Now().UTC().Format(time.RFC3339),
+		UserID:    int64(1), // TODO
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert feed: %w", err)

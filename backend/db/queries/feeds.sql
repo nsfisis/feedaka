@@ -10,8 +10,8 @@ WHERE is_subscribed = 1
 ORDER BY id;
 
 -- name: CreateFeed :one
-INSERT INTO feeds (url, title, fetched_at)
-VALUES (?, ?, ?)
+INSERT INTO feeds (url, title, fetched_at, user_id)
+VALUES (?, ?, ?, ?)
 RETURNING *;
 
 -- name: UpdateFeedMetadata :exec

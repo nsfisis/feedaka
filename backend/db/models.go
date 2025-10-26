@@ -4,10 +4,6 @@
 
 package db
 
-import (
-	"database/sql"
-)
-
 type Article struct {
 	ID     int64
 	FeedID int64
@@ -23,7 +19,7 @@ type Feed struct {
 	Title        string
 	FetchedAt    string
 	IsSubscribed int64
-	UserID       sql.NullInt64
+	UserID       int64
 }
 
 type User struct {

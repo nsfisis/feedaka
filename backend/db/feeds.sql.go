@@ -7,12 +7,11 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createFeed = `-- name: CreateFeed :one
-INSERT INTO feeds (url, title, fetched_at)
-VALUES (?, ?, ?)
+INSERT INTO feeds (url, title, fetched_at, user_id)
+VALUES (?, ?, ?, ?)
 RETURNING id, url, title, fetched_at, is_subscribed, user_id
 `
 
@@ -20,10 +19,16 @@ type CreateFeedParams struct {
 	Url       string
 	Title     string
 	FetchedAt string
+	UserID    int64
 }
 
 func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, createFeed, arg.Url, arg.Title, arg.FetchedAt)
+	row := q.db.QueryRowContext(ctx, createFeed,
+		arg.Url,
+		arg.Title,
+		arg.FetchedAt,
+		arg.UserID,
+	)
 	var i Feed
 	err := row.Scan(
 		&i.ID,
@@ -133,7 +138,7 @@ type GetFeedsToFetchRow struct {
 	ID        int64
 	Url       string
 	FetchedAt string
-	UserID    sql.NullInt64
+	UserID    int64
 }
 
 func (q *Queries) GetFeedsToFetch(ctx context.Context) ([]GetFeedsToFetchRow, error) {
