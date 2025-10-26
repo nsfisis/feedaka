@@ -7,12 +7,13 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createFeed = `-- name: CreateFeed :one
 INSERT INTO feeds (url, title, fetched_at)
 VALUES (?, ?, ?)
-RETURNING id, url, title, fetched_at, is_subscribed
+RETURNING id, url, title, fetched_at, is_subscribed, user_id
 `
 
 type CreateFeedParams struct {
@@ -30,6 +31,7 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		&i.Title,
 		&i.FetchedAt,
 		&i.IsSubscribed,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -45,7 +47,7 @@ func (q *Queries) DeleteFeed(ctx context.Context, id int64) error {
 }
 
 const getFeed = `-- name: GetFeed :one
-SELECT id, url, title, fetched_at, is_subscribed
+SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds
 WHERE id = ?
 `
@@ -59,12 +61,13 @@ func (q *Queries) GetFeed(ctx context.Context, id int64) (Feed, error) {
 		&i.Title,
 		&i.FetchedAt,
 		&i.IsSubscribed,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getFeedByURL = `-- name: GetFeedByURL :one
-SELECT id, url, title, fetched_at, is_subscribed
+SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds
 WHERE url = ?
 `
@@ -78,12 +81,13 @@ func (q *Queries) GetFeedByURL(ctx context.Context, url string) (Feed, error) {
 		&i.Title,
 		&i.FetchedAt,
 		&i.IsSubscribed,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getFeeds = `-- name: GetFeeds :many
-SELECT id, url, title, fetched_at, is_subscribed
+SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds
 WHERE is_subscribed = 1
 ORDER BY id
@@ -104,6 +108,7 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
 			&i.Title,
 			&i.FetchedAt,
 			&i.IsSubscribed,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -119,7 +124,7 @@ func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
 }
 
 const getFeedsToFetch = `-- name: GetFeedsToFetch :many
-SELECT id, url, fetched_at
+SELECT id, url, fetched_at, user_id
 FROM feeds
 WHERE is_subscribed = 1
 `
@@ -128,6 +133,7 @@ type GetFeedsToFetchRow struct {
 	ID        int64
 	Url       string
 	FetchedAt string
+	UserID    sql.NullInt64
 }
 
 func (q *Queries) GetFeedsToFetch(ctx context.Context) ([]GetFeedsToFetchRow, error) {
@@ -139,7 +145,12 @@ func (q *Queries) GetFeedsToFetch(ctx context.Context) ([]GetFeedsToFetchRow, er
 	items := []GetFeedsToFetchRow{}
 	for rows.Next() {
 		var i GetFeedsToFetchRow
-		if err := rows.Scan(&i.ID, &i.Url, &i.FetchedAt); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Url,
+			&i.FetchedAt,
+			&i.UserID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

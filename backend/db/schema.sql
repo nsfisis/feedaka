@@ -1,10 +1,19 @@
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    username      TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Feeds
 CREATE TABLE IF NOT EXISTS feeds (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     url           TEXT NOT NULL,
     title         TEXT NOT NULL,
     fetched_at    TEXT NOT NULL,
-    is_subscribed INTEGER NOT NULL DEFAULT 1
+    is_subscribed INTEGER NOT NULL DEFAULT 1,
+    user_id       INTEGER REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Articles
@@ -24,3 +33,5 @@ CREATE INDEX IF NOT EXISTS idx_articles_feed_id ON articles(feed_id);
 CREATE INDEX IF NOT EXISTS idx_articles_feed_guid ON articles(feed_id, guid);
 
 CREATE INDEX IF NOT EXISTS idx_articles_is_read ON articles(is_read);
+
+CREATE INDEX IF NOT EXISTS idx_feeds_user_id ON feeds(user_id);
