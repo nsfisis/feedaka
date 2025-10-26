@@ -21,7 +21,7 @@ RUN go mod download
 
 COPY backend/ ./
 COPY --from=frontend-builder /app/dist/ ./public/
-RUN CGO_ENABLED=1 GOOS=linux go build -o feedaka main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -o feedaka .
 
 ##########################################
 
