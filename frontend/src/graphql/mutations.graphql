@@ -50,3 +50,16 @@ mutation MarkFeedUnread($id: ID!) {
 		fetchedAt
 	}
 }
+
+mutation Login($username: String!, $password: String!) {
+	login(username: $username, password: $password) {
+		user {
+			id
+			username
+		}
+	}
+}
+
+mutation Logout {
+	logout
+}

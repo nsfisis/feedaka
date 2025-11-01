@@ -76,3 +76,10 @@ query GetArticle($id: ID!) {
 		}
 	}
 }
+
+query GetMe {
+	me {
+		id
+		username
+	}
+}

@@ -78,8 +78,13 @@ SELECT
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.id = ?
+WHERE a.id = ? AND f.user_id = ?
 `
+
+type GetArticleParams struct {
+	ID     int64
+	UserID int64
+}
 
 type GetArticleRow struct {
 	ID               int64
@@ -94,8 +99,8 @@ type GetArticleRow struct {
 	FeedIsSubscribed int64
 }
 
-func (q *Queries) GetArticle(ctx context.Context, id int64) (GetArticleRow, error) {
-	row := q.db.QueryRowContext(ctx, getArticle, id)
+func (q *Queries) GetArticle(ctx context.Context, arg GetArticleParams) (GetArticleRow, error) {
+	row := q.db.QueryRowContext(ctx, getArticle, arg.ID, arg.UserID)
 	var i GetArticleRow
 	err := row.Scan(
 		&i.ID,
@@ -184,7 +189,7 @@ SELECT
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 1 AND f.is_subscribed = 1
+WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
 ORDER BY a.id DESC
 LIMIT 100
 `
@@ -202,8 +207,8 @@ type GetReadArticlesRow struct {
 	FeedIsSubscribed int64
 }
 
-func (q *Queries) GetReadArticles(ctx context.Context) ([]GetReadArticlesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getReadArticles)
+func (q *Queries) GetReadArticles(ctx context.Context, userID int64) ([]GetReadArticlesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getReadArticles, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +247,7 @@ SELECT
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 0 AND f.is_subscribed = 1
+WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
 ORDER BY a.id DESC
 LIMIT 100
 `
@@ -260,8 +265,8 @@ type GetUnreadArticlesRow struct {
 	FeedIsSubscribed int64
 }
 
-func (q *Queries) GetUnreadArticles(ctx context.Context) ([]GetUnreadArticlesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUnreadArticles)
+func (q *Queries) GetUnreadArticles(ctx context.Context, userID int64) ([]GetUnreadArticlesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUnreadArticles, userID)
 	if err != nil {
 		return nil, err
 	}
