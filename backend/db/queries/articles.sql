@@ -12,7 +12,7 @@ SELECT
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 0 AND f.is_subscribed = 1
+WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
 ORDER BY a.id DESC
 LIMIT 100;
 
@@ -22,7 +22,7 @@ SELECT
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 1 AND f.is_subscribed = 1
+WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
 ORDER BY a.id DESC
 LIMIT 100;
 

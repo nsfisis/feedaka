@@ -76,6 +76,31 @@ type Article {
 }
 
 """
+Represents a user in the system
+"""
+type User {
+	"""
+	Unique identifier for the user
+	"""
+	id: ID!
+
+	"""
+	Username of the user
+	"""
+	username: String!
+}
+
+"""
+Authentication payload returned from login mutation
+"""
+type AuthPayload {
+	"""
+	The authenticated user
+	"""
+	user: User!
+}
+
+"""
 Root query type for reading data
 """
 type Query {
@@ -103,6 +128,11 @@ type Query {
 	Get a specific article by ID
 	"""
 	article(id: ID!): Article
+
+	"""
+	Get the currently authenticated user
+	"""
+	currentUser: User
 }
 
 """
@@ -138,4 +168,14 @@ type Mutation {
 	Mark all articles in a feed as unread
 	"""
 	markFeedUnread(id: ID!): Feed!
+
+	"""
+	Login with username and password. Creates a session cookie.
+	"""
+	login(username: String!, password: String!): AuthPayload!
+
+	"""
+	Logout the current user and destroy the session
+	"""
+	logout: Boolean!
 }

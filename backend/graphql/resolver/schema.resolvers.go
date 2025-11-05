@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mmcdole/gofeed"
+	"undef.ninja/x/feedaka/auth"
 	"undef.ninja/x/feedaka/db"
 	gql "undef.ninja/x/feedaka/graphql"
 	"undef.ninja/x/feedaka/graphql/model"
@@ -19,6 +20,11 @@ import (
 
 // AddFeed is the resolver for the addFeed field.
 func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Fetch the feed to get its title
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(url)
@@ -31,7 +37,7 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 		Url:       url,
 		Title:     feed.Title,
 		FetchedAt: time.Now().UTC().Format(time.RFC3339),
-		UserID:    int64(1), // TODO
+		UserID:    userID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert feed: %w", err)
@@ -63,12 +69,31 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 
 // UnsubscribeFeed is the resolver for the unsubscribeFeed field.
 func (r *mutationResolver) UnsubscribeFeed(ctx context.Context, id string) (bool, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
 	feedID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return false, fmt.Errorf("invalid feed ID: %w", err)
 	}
 
-	err = r.Queries.UnsubscribeFeed(ctx, feedID)
+	// Fetch feed
+	feed, err := r.Queries.GetFeed(ctx, feedID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, fmt.Errorf("feed not found")
+		}
+		return false, fmt.Errorf("failed to query feed: %w", err)
+	}
+
+	// Check authorization
+	if feed.UserID != userID {
+		return false, fmt.Errorf("forbidden: you don't have access to this feed")
+	}
+
+	err = r.Queries.UnsubscribeFeed(ctx, feed.ID)
 	if err != nil {
 		return false, fmt.Errorf("failed to unsubscribe from feed: %w", err)
 	}
@@ -78,15 +103,38 @@ func (r *mutationResolver) UnsubscribeFeed(ctx context.Context, id string) (bool
 
 // MarkArticleRead is the resolver for the markArticleRead field.
 func (r *mutationResolver) MarkArticleRead(ctx context.Context, id string) (*model.Article, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	articleID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid article ID: %w", err)
 	}
 
+	// Fetch article
+	article, err := r.Queries.GetArticle(ctx, articleID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("article not found")
+		}
+		return nil, fmt.Errorf("failed to query article: %w", err)
+	}
+
+	// Check authorization (article belongs to a feed owned by user)
+	feed, err := r.Queries.GetFeed(ctx, article.FeedID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query feed: %w", err)
+	}
+	if feed.UserID != userID {
+		return nil, fmt.Errorf("forbidden: you don't have access to this article")
+	}
+
 	// Update the article's read status
 	err = r.Queries.UpdateArticleReadStatus(ctx, db.UpdateArticleReadStatusParams{
 		IsRead: 1,
-		ID:     articleID,
+		ID:     article.ID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark article as read: %w", err)
@@ -98,15 +146,38 @@ func (r *mutationResolver) MarkArticleRead(ctx context.Context, id string) (*mod
 
 // MarkArticleUnread is the resolver for the markArticleUnread field.
 func (r *mutationResolver) MarkArticleUnread(ctx context.Context, id string) (*model.Article, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	articleID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid article ID: %w", err)
 	}
 
+	// Fetch article
+	article, err := r.Queries.GetArticle(ctx, articleID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("article not found")
+		}
+		return nil, fmt.Errorf("failed to query article: %w", err)
+	}
+
+	// Check authorization (article belongs to a feed owned by user)
+	feed, err := r.Queries.GetFeed(ctx, article.FeedID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query feed: %w", err)
+	}
+	if feed.UserID != userID {
+		return nil, fmt.Errorf("forbidden: you don't have access to this article")
+	}
+
 	// Update the article's read status
 	err = r.Queries.UpdateArticleReadStatus(ctx, db.UpdateArticleReadStatusParams{
 		IsRead: 0,
-		ID:     articleID,
+		ID:     article.ID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark article as unread: %w", err)
@@ -118,13 +189,32 @@ func (r *mutationResolver) MarkArticleUnread(ctx context.Context, id string) (*m
 
 // MarkFeedRead is the resolver for the markFeedRead field.
 func (r *mutationResolver) MarkFeedRead(ctx context.Context, id string) (*model.Feed, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	feedID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid feed ID: %w", err)
 	}
 
+	// Fetch feed
+	feed, err := r.Queries.GetFeed(ctx, feedID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("feed not found")
+		}
+		return nil, fmt.Errorf("failed to query feed: %w", err)
+	}
+
+	// Check authorization
+	if feed.UserID != userID {
+		return nil, fmt.Errorf("forbidden: you don't have access to this feed")
+	}
+
 	// Update all articles in the feed to be read
-	err = r.Queries.MarkFeedArticlesRead(ctx, feedID)
+	err = r.Queries.MarkFeedArticlesRead(ctx, feed.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark feed as read: %w", err)
 	}
@@ -135,13 +225,32 @@ func (r *mutationResolver) MarkFeedRead(ctx context.Context, id string) (*model.
 
 // MarkFeedUnread is the resolver for the markFeedUnread field.
 func (r *mutationResolver) MarkFeedUnread(ctx context.Context, id string) (*model.Feed, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	feedID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid feed ID: %w", err)
 	}
 
+	// Fetch feed
+	feed, err := r.Queries.GetFeed(ctx, feedID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("feed not found")
+		}
+		return nil, fmt.Errorf("failed to query feed: %w", err)
+	}
+
+	// Check authorization
+	if feed.UserID != userID {
+		return nil, fmt.Errorf("forbidden: you don't have access to this feed")
+	}
+
 	// Update all articles in the feed to be unread
-	err = r.Queries.MarkFeedArticlesUnread(ctx, feedID)
+	err = r.Queries.MarkFeedArticlesUnread(ctx, feed.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mark feed as unread: %w", err)
 	}
@@ -150,9 +259,65 @@ func (r *mutationResolver) MarkFeedUnread(ctx context.Context, id string) (*mode
 	return r.Query().Feed(ctx, id)
 }
 
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, username string, password string) (*model.AuthPayload, error) {
+	// Verify user credentials
+	user, err := r.Queries.GetUserByUsername(ctx, username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("invalid credentials")
+		}
+		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+
+	// Verify password
+	if !auth.VerifyPassword(user.PasswordHash, password) {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	// Get Echo context to create session
+	echoCtx, err := getEchoContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get echo context: %w", err)
+	}
+
+	// Create session and store user ID
+	if err := r.SessionConfig.SetUserID(echoCtx, user.ID); err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	return &model.AuthPayload{
+		User: &model.User{
+			ID:       strconv.FormatInt(user.ID, 10),
+			Username: user.Username,
+		},
+	}, nil
+}
+
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
+	// Get Echo context to destroy session
+	echoCtx, err := getEchoContext(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get echo context: %w", err)
+	}
+
+	// Destroy session
+	if err := r.SessionConfig.DestroySession(echoCtx); err != nil {
+		return false, fmt.Errorf("failed to destroy session: %w", err)
+	}
+
+	return true, nil
+}
+
 // Feeds is the resolver for the feeds field.
 func (r *queryResolver) Feeds(ctx context.Context) ([]*model.Feed, error) {
-	dbFeeds, err := r.Queries.GetFeeds(ctx)
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	dbFeeds, err := r.Queries.GetFeeds(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query feeds: %w", err)
 	}
@@ -173,7 +338,12 @@ func (r *queryResolver) Feeds(ctx context.Context) ([]*model.Feed, error) {
 
 // UnreadArticles is the resolver for the unreadArticles field.
 func (r *queryResolver) UnreadArticles(ctx context.Context) ([]*model.Article, error) {
-	rows, err := r.Queries.GetUnreadArticles(ctx)
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.Queries.GetUnreadArticles(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query unread articles: %w", err)
 	}
@@ -201,7 +371,12 @@ func (r *queryResolver) UnreadArticles(ctx context.Context) ([]*model.Article, e
 
 // ReadArticles is the resolver for the readArticles field.
 func (r *queryResolver) ReadArticles(ctx context.Context) ([]*model.Article, error) {
-	rows, err := r.Queries.GetReadArticles(ctx)
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.Queries.GetReadArticles(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query read articles: %w", err)
 	}
@@ -229,17 +404,28 @@ func (r *queryResolver) ReadArticles(ctx context.Context) ([]*model.Article, err
 
 // Feed is the resolver for the feed field.
 func (r *queryResolver) Feed(ctx context.Context, id string) (*model.Feed, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	feedID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid feed ID: %w", err)
 	}
 
+	// Fetch feed
 	dbFeed, err := r.Queries.GetFeed(ctx, feedID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("feed not found")
 		}
 		return nil, fmt.Errorf("failed to query feed: %w", err)
+	}
+
+	// Check authorization
+	if dbFeed.UserID != userID {
+		return nil, fmt.Errorf("forbidden: you don't have access to this feed")
 	}
 
 	return &model.Feed{
@@ -253,17 +439,35 @@ func (r *queryResolver) Feed(ctx context.Context, id string) (*model.Feed, error
 
 // Article is the resolver for the article field.
 func (r *queryResolver) Article(ctx context.Context, id string) (*model.Article, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	articleID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid article ID: %w", err)
 	}
 
+	// Fetch article
 	row, err := r.Queries.GetArticle(ctx, articleID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("article not found")
 		}
 		return nil, fmt.Errorf("failed to query article: %w", err)
+	}
+
+	// Check authorization (article's feed belongs to user)
+	// Note: GetArticle already joins with feeds table and returns feed info,
+	// but we need to check the user_id. Since GetArticleRow doesn't include user_id,
+	// we need to fetch the feed separately.
+	feed, err := r.Queries.GetFeed(ctx, row.FeedID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query feed: %w", err)
+	}
+	if feed.UserID != userID {
+		return nil, fmt.Errorf("forbidden: you don't have access to this article")
 	}
 
 	return &model.Article{
@@ -278,6 +482,28 @@ func (r *queryResolver) Article(ctx context.Context, id string) (*model.Article,
 			URL:   row.FeedUrl,
 			Title: row.FeedTitle,
 		},
+	}, nil
+}
+
+// CurrentUser is the resolver for the currentUser field.
+func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		// Not authenticated - return nil (not an error)
+		return nil, nil
+	}
+
+	user, err := r.Queries.GetUserByID(ctx, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+
+	return &model.User{
+		ID:       strconv.FormatInt(user.ID, 10),
+		Username: user.Username,
 	}, nil
 }
 

@@ -6,7 +6,7 @@ WHERE id = ?;
 -- name: GetFeeds :many
 SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds
-WHERE is_subscribed = 1
+WHERE is_subscribed = 1 AND user_id = ?
 ORDER BY id;
 
 -- name: CreateFeed :one
@@ -26,7 +26,7 @@ WHERE id = ?;
 -- name: GetFeedByURL :one
 SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds
-WHERE url = ?;
+WHERE url = ? AND user_id = ?;
 
 -- name: GetFeedsToFetch :many
 SELECT id, url, fetched_at, user_id

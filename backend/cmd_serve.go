@@ -17,11 +17,13 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/hashicorp/go-multierror"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/mmcdole/gofeed"
 	"github.com/vektah/gqlparser/v2/ast"
 
+	"undef.ninja/x/feedaka/auth"
 	"undef.ninja/x/feedaka/db"
 	"undef.ninja/x/feedaka/graphql"
 	"undef.ninja/x/feedaka/graphql/resolver"
@@ -149,11 +151,17 @@ func runServe(database *sql.DB) {
 
 	queries := db.New(database)
 
+	sessionConfig, err := auth.NewSessionConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	e := echo.New()
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
+	e.Use(session.Middleware(sessionConfig.GetStore()))
 
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 		HTML5:      true,
@@ -162,7 +170,11 @@ func runServe(database *sql.DB) {
 	}))
 
 	// Setup GraphQL server
-	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver.Resolver{DB: database, Queries: queries}}))
+	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver.Resolver{
+		DB:            database,
+		Queries:       queries,
+		SessionConfig: sessionConfig,
+	}}))
 
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
@@ -175,9 +187,24 @@ func runServe(database *sql.DB) {
 		Cache: lru.New[string](100),
 	})
 
-	// GraphQL endpoints
-	e.POST("/graphql", echo.WrapHandler(srv))
-	e.GET("/graphql", echo.WrapHandler(srv))
+	// GraphQL endpoints with authentication middleware
+	graphqlGroup := e.Group("/graphql")
+	graphqlGroup.Use(SessionAuthMiddleware(sessionConfig))
+	// !!! ここで echo.Context を GraphQL へ渡している意味は？
+	graphqlGroup.POST("", func(c echo.Context) error {
+		// Add Echo context to GraphQL context
+		ctx := context.WithValue(c.Request().Context(), "echo", c)
+		req := c.Request().WithContext(ctx)
+		srv.ServeHTTP(c.Response(), req)
+		return nil
+	})
+	graphqlGroup.GET("", func(c echo.Context) error {
+		// Add Echo context to GraphQL context
+		ctx := context.WithValue(c.Request().Context(), "echo", c)
+		req := c.Request().WithContext(ctx)
+		srv.ServeHTTP(c.Response(), req)
+		return nil
+	})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

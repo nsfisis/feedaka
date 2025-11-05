@@ -9,4 +9,6 @@ services:
     environment:
       TZ: Asia/Tokyo
       FEEDAKA_PORT: '8080'
+    env_file:
+      - .env
     restart: always

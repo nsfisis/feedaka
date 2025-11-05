@@ -76,3 +76,10 @@ query GetArticle($id: ID!) {
 		}
 	}
 }
+
+query GetCurrentUser {
+	currentUser {
+		id
+		username
+	}
+}

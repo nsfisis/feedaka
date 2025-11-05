@@ -74,11 +74,16 @@ func (q *Queries) GetFeed(ctx context.Context, id int64) (Feed, error) {
 const getFeedByURL = `-- name: GetFeedByURL :one
 SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds
-WHERE url = ?
+WHERE url = ? AND user_id = ?
 `
 
-func (q *Queries) GetFeedByURL(ctx context.Context, url string) (Feed, error) {
-	row := q.db.QueryRowContext(ctx, getFeedByURL, url)
+type GetFeedByURLParams struct {
+	Url    string
+	UserID int64
+}
+
+func (q *Queries) GetFeedByURL(ctx context.Context, arg GetFeedByURLParams) (Feed, error) {
+	row := q.db.QueryRowContext(ctx, getFeedByURL, arg.Url, arg.UserID)
 	var i Feed
 	err := row.Scan(
 		&i.ID,
@@ -94,12 +99,12 @@ func (q *Queries) GetFeedByURL(ctx context.Context, url string) (Feed, error) {
 const getFeeds = `-- name: GetFeeds :many
 SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds
-WHERE is_subscribed = 1
+WHERE is_subscribed = 1 AND user_id = ?
 ORDER BY id
 `
 
-func (q *Queries) GetFeeds(ctx context.Context) ([]Feed, error) {
-	rows, err := q.db.QueryContext(ctx, getFeeds)
+func (q *Queries) GetFeeds(ctx context.Context, userID int64) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getFeeds, userID)
 	if err != nil {
 		return nil, err
 	}

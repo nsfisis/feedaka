@@ -20,6 +20,12 @@ type Article struct {
 	Feed *Feed `json:"feed"`
 }
 
+// Authentication payload returned from login mutation
+type AuthPayload struct {
+	// The authenticated user
+	User *User `json:"user"`
+}
+
 // Represents a feed subscription in the system
 type Feed struct {
 	// Unique identifier for the feed
@@ -42,4 +48,12 @@ type Mutation struct {
 
 // Root query type for reading data
 type Query struct {
+}
+
+// Represents a user in the system
+type User struct {
+	// Unique identifier for the user
+	ID string `json:"id"`
+	// Username of the user
+	Username string `json:"username"`
 }
