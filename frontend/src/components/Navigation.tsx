@@ -37,7 +37,7 @@ export function Navigation() {
 								title={`Logout (${user.username})`}
 							>
 								<FontAwesomeIcon icon={faRightFromBracket} />
-								<span>Logout</span>
+								<span className="hidden sm:inline">Logout</span>
 							</button>
 						)}
 					</div>
