@@ -1,10 +1,4 @@
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { useMutation, useQuery } from "urql";
 import {
 	GetCurrentUserDocument,
@@ -25,51 +19,26 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-
 	const [, executeLogin] = useMutation(LoginDocument);
 	const [, executeLogout] = useMutation(LogoutDocument);
 	const [currentUserResult, reexecuteCurrentUser] = useQuery({
 		query: GetCurrentUserDocument,
 	});
 
-	// Update isLoggedIn from CurrentUser query
-	useEffect(() => {
-		if (currentUserResult.data?.currentUser) {
-			setIsLoggedIn(true);
-			setError(null);
-		} else {
-			setIsLoggedIn(false);
-		}
-
-		if (currentUserResult.error) {
-			setError(currentUserResult.error.message);
-		}
-
-		if (!currentUserResult.fetching) {
-			setIsLoading(false);
-		}
-	}, [
-		currentUserResult.data,
-		currentUserResult.fetching,
-		currentUserResult.error,
-	]);
+	const isLoggedIn = !!currentUserResult.data?.currentUser;
+	const isLoading = currentUserResult.fetching;
+	const error = currentUserResult.error?.message ?? null;
 
 	const login = async (
 		username: string,
 		password: string,
 	): Promise<LoginResult> => {
-		setError(null);
-
 		try {
 			const result = await executeLogin({ username, password });
 
 			if (result.error) {
 				const errorMessage =
 					result.error.graphQLErrors[0]?.message || result.error.message;
-				setError(errorMessage);
 				return { success: false, error: errorMessage };
 			}
 
@@ -80,13 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 
 			const errorMessage = "Invalid username or password";
-			setError(errorMessage);
 			return { success: false, error: errorMessage };
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error ? error.message : "An unknown error occurred";
 			console.error("Login failed:", error);
-			setError(errorMessage);
 			return { success: false, error: errorMessage };
 		}
 	};
