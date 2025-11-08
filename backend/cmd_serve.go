@@ -138,12 +138,7 @@ func scheduled(ctx context.Context, d time.Duration, fn func()) {
 	}()
 }
 
-func runServe(database *sql.DB) {
-	port := os.Getenv("FEEDAKA_PORT")
-	if port == "" {
-		port = "8080"
-	}
-
+func runServe(database *sql.DB, config *Config) {
 	err := db.ValidateSchemaVersion(database)
 	if err != nil {
 		log.Fatal(err)
@@ -151,10 +146,7 @@ func runServe(database *sql.DB) {
 
 	queries := db.New(database)
 
-	sessionConfig, err := auth.NewSessionConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
+	sessionConfig := auth.NewSessionConfig(config.SessionSecret, config.DevNonSecureCookie)
 
 	e := echo.New()
 
@@ -233,8 +225,8 @@ func runServe(database *sql.DB) {
 		}
 	}()
 
-	log.Printf("Server starting on port %s...\n", port)
-	err = e.Start(":" + port)
+	log.Printf("Server starting on port %s...\n", config.Port)
+	err = e.Start(":" + config.Port)
 	if err != nil && err != http.ErrServerClosed {
 		log.Printf("Server error: %v\n", err)
 	}

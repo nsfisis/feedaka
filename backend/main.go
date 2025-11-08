@@ -12,12 +12,15 @@ import (
 //go:generate go tool gqlgen generate
 
 func main() {
+	config, err := LoadConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Parse command line flags
 	var migrate = flag.Bool("migrate", false, "Run database migrations")
 	var createUser = flag.Bool("create-user", false, "Create a new user")
 	flag.Parse()
-
-	var err error
 	database, err := sql.Open("sqlite3", "data/feedaka.db")
 	if err != nil {
 		log.Fatal(err)
@@ -29,6 +32,6 @@ func main() {
 	} else if *createUser {
 		runCreateUser(database)
 	} else {
-		runServe(database)
+		runServe(database, config)
 	}
 }

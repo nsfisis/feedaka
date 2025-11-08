@@ -3,7 +3,6 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
@@ -18,22 +17,15 @@ const (
 )
 
 var (
-	ErrNoSession             = errors.New("no session found")
-	ErrNoUserIDInSession     = errors.New("no user_id in session")
-	ErrNoSessionSecretEnvVar = errors.New("FEEDAKA_SESSION_SECRET environment variable is not set")
+	ErrNoSession         = errors.New("no session found")
+	ErrNoUserIDInSession = errors.New("no user_id in session")
 )
 
 type SessionConfig struct {
 	store *sessions.CookieStore
 }
 
-func NewSessionConfig() (*SessionConfig, error) {
-	secret := os.Getenv("FEEDAKA_SESSION_SECRET")
-	if secret == "" {
-		return nil, ErrNoSessionSecretEnvVar
-	}
-	useNonSecureCookie := os.Getenv("FEEDAKA_DEV_NON_SECURE_COOKIE") == "1"
-
+func NewSessionConfig(secret string, useNonSecureCookie bool) *SessionConfig {
 	store := sessions.NewCookieStore([]byte(secret))
 	store.Options = &sessions.Options{
 		Path:     "/",
@@ -45,7 +37,7 @@ func NewSessionConfig() (*SessionConfig, error) {
 
 	return &SessionConfig{
 		store: store,
-	}, nil
+	}
 }
 
 func (c *SessionConfig) GetStore() *sessions.CookieStore {

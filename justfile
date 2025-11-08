@@ -2,7 +2,7 @@ list:
     @just -l
 
 serve:
-    FEEDAKA_PORT=8080 ./backend/feedaka
+    ./backend/feedaka
 
 build: generate
     cd frontend && npm run build
