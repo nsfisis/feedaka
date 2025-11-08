@@ -1,8 +1,9 @@
 list:
     @just -l
 
-serve:
-    ./backend/feedaka
+dev:
+    ./backend/feedaka &
+    cd frontend && npm run dev
 
 build: generate
     cd frontend && npm run build

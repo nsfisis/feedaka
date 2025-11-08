@@ -8,6 +8,8 @@ interface Props {
 	onFeedAdded?: () => void;
 }
 
+const urqlContextFeed = { additionalTypenames: ["Feed"] };
+
 export function AddFeedForm({ onFeedAdded }: Props) {
 	const [url, setUrl] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function AddFeedForm({ onFeedAdded }: Props) {
 		setError(null);
 
 		try {
-			const result = await addFeed({ url: url.trim() });
+			const result = await addFeed({ url: url.trim() }, urqlContextFeed);
 			if (result.error) {
 				setError(result.error.message);
 			} else if (result.data) {

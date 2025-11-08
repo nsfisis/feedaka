@@ -17,11 +17,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const urqlContextUser = { additionalTypenames: ["User"] };
+
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [, executeLogin] = useMutation(LoginDocument);
 	const [, executeLogout] = useMutation(LogoutDocument);
 	const [currentUserResult] = useQuery({
 		query: GetCurrentUserDocument,
+		context: urqlContextUser,
 	});
 
 	const isLoggedIn = !!currentUserResult.data?.currentUser;
@@ -32,7 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		password: string,
 	): Promise<LoginResult> => {
 		try {
-			const result = await executeLogin({ username, password });
+			const result = await executeLogin(
+				{ username, password },
+				urqlContextUser,
+			);
 
 			if (result.error) {
 				const errorMessage =
@@ -56,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const logout = async () => {
 		try {
-			await executeLogout({});
+			await executeLogout({}, urqlContextUser);
 		} catch (error) {
 			console.error("Logout failed:", error);
 		}

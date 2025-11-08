@@ -2,9 +2,12 @@ import { useQuery } from "urql";
 import { ArticleList } from "../components";
 import { GetUnreadArticlesDocument } from "../graphql/generated/graphql";
 
+const urqlContextArticle = { additionalTypenames: ["Article"] };
+
 export function UnreadArticles() {
 	const [{ data, fetching, error }] = useQuery({
 		query: GetUnreadArticlesDocument,
+		context: urqlContextArticle,
 	});
 
 	if (fetching) {

@@ -20,6 +20,8 @@ interface Props {
 	onReadChange?: (articleId: string, isRead: boolean) => void;
 }
 
+const urqlContextArticle = { additionalTypenames: ["Article"] };
+
 export function ArticleItem({ article, onReadChange }: Props) {
 	const [, markArticleRead] = useMutation(MarkArticleReadDocument);
 	const [, markArticleUnread] = useMutation(MarkArticleUnreadDocument);
@@ -32,9 +34,9 @@ export function ArticleItem({ article, onReadChange }: Props) {
 		onReadChange?.(articleId, newReadState);
 
 		if (isCurrentlyRead) {
-			await markArticleUnread({ id: articleId });
+			await markArticleUnread({ id: articleId }, urqlContextArticle);
 		} else {
-			await markArticleRead({ id: articleId });
+			await markArticleRead({ id: articleId }, urqlContextArticle);
 		}
 	};
 
@@ -43,7 +45,7 @@ export function ArticleItem({ article, onReadChange }: Props) {
 		window.open(article.url, "_blank", "noreferrer");
 		if (!article.isRead) {
 			onReadChange?.(article.id, true);
-			await markArticleRead({ id: article.id });
+			await markArticleRead({ id: article.id }, urqlContextArticle);
 		}
 	};
 

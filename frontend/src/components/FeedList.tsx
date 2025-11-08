@@ -6,9 +6,12 @@ interface Props {
 	onFeedUnsubscribed?: () => void;
 }
 
+const urqlContextFeed = { additionalTypenames: ["Feed"] };
+
 export function FeedList({ onFeedUnsubscribed }: Props) {
 	const [{ data, fetching, error }] = useQuery({
 		query: GetFeedsDocument,
+		context: urqlContextFeed,
 	});
 
 	if (fetching) {

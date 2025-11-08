@@ -15,17 +15,19 @@ interface Props {
 	onFeedUnsubscribed?: () => void;
 }
 
+const urqlContextFeed = { additionalTypenames: ["Feed"] };
+
 export function FeedItem({ feed, onFeedUnsubscribed }: Props) {
 	const [, markFeedRead] = useMutation(MarkFeedReadDocument);
 	const [, markFeedUnread] = useMutation(MarkFeedUnreadDocument);
 	const [, unsubscribeFeed] = useMutation(UnsubscribeFeedDocument);
 
 	const handleMarkAllRead = async (feedId: string) => {
-		await markFeedRead({ id: feedId });
+		await markFeedRead({ id: feedId }, urqlContextFeed);
 	};
 
 	const handleMarkAllUnread = async (feedId: string) => {
-		await markFeedUnread({ id: feedId });
+		await markFeedUnread({ id: feedId }, urqlContextFeed);
 	};
 
 	const handleUnsubscribeFeed = async (feedId: string) => {
@@ -33,7 +35,7 @@ export function FeedItem({ feed, onFeedUnsubscribed }: Props) {
 			"Are you sure you want to unsubscribe from this feed?",
 		);
 		if (confirmed) {
-			await unsubscribeFeed({ id: feedId });
+			await unsubscribeFeed({ id: feedId }, urqlContextFeed);
 			onFeedUnsubscribed?.();
 		}
 	};
