@@ -11,7 +11,6 @@ type LoginResult = { success: true } | { success: false; error: string };
 interface AuthContextType {
 	isLoggedIn: boolean;
 	isLoading: boolean;
-	error: string | null;
 	login: (username: string, password: string) => Promise<LoginResult>;
 	logout: () => Promise<void>;
 }
@@ -27,7 +26,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const isLoggedIn = !!currentUserResult.data?.currentUser;
 	const isLoading = currentUserResult.fetching;
-	const error = currentUserResult.error?.message ?? null;
 
 	const login = async (
 		username: string,
@@ -65,9 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	};
 
 	return (
-		<AuthContext.Provider
-			value={{ isLoggedIn, isLoading, error, login, logout }}
-		>
+		<AuthContext.Provider value={{ isLoggedIn, isLoading, login, logout }}>
 			{children}
 		</AuthContext.Provider>
 	);
