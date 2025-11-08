@@ -8,17 +8,14 @@ import {
 import { useMutation, useQuery } from "urql";
 import {
 	GetCurrentUserDocument,
-	type GetCurrentUserQuery,
 	LoginDocument,
 	LogoutDocument,
 } from "../graphql/generated/graphql";
 
-type User = NonNullable<GetCurrentUserQuery["currentUser"]>;
-
 type LoginResult = { success: true } | { success: false; error: string };
 
 interface AuthContextType {
-	user: User | null;
+	isLoggedIn: boolean;
 	isLoading: boolean;
 	error: string | null;
 	login: (username: string, password: string) => Promise<LoginResult>;
@@ -28,7 +25,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-	const [user, setUser] = useState<User | null>(null);
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -38,13 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		query: GetCurrentUserDocument,
 	});
 
-	// Update user from CurrentUser query
+	// Update isLoggedIn from CurrentUser query
 	useEffect(() => {
 		if (currentUserResult.data?.currentUser) {
-			setUser(currentUserResult.data.currentUser);
+			setIsLoggedIn(true);
 			setError(null);
 		} else {
-			setUser(null);
+			setIsLoggedIn(false);
 		}
 
 		if (currentUserResult.error) {
@@ -107,7 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	};
 
 	return (
-		<AuthContext.Provider value={{ user, isLoading, error, login, logout }}>
+		<AuthContext.Provider
+			value={{ isLoggedIn, isLoading, error, login, logout }}
+		>
 			{children}
 		</AuthContext.Provider>
 	);

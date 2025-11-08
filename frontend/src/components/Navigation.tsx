@@ -10,7 +10,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { MenuItem } from "./MenuItem";
 
 export function Navigation() {
-	const { logout, user } = useAuth();
+	const { logout, isLoggedIn } = useAuth();
 	const [, setLocation] = useLocation();
 
 	const handleLogout = async () => {
@@ -29,7 +29,7 @@ export function Navigation() {
 						<MenuItem path="/unread" label="Unread" icon={faBookOpen} />
 						<MenuItem path="/read" label="Read" icon={faCircleCheck} />
 						<MenuItem path="/settings" label="Settings" icon={faGear} />
-						{user && (
+						{isLoggedIn && (
 							<button
 								type="button"
 								onClick={handleLogout}

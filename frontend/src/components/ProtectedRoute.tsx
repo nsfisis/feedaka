@@ -7,7 +7,7 @@ interface Props {
 }
 
 export function ProtectedRoute({ children }: Props) {
-	const { user, isLoading } = useAuth();
+	const { isLoggedIn, isLoading } = useAuth();
 
 	if (isLoading) {
 		return (
@@ -24,7 +24,7 @@ export function ProtectedRoute({ children }: Props) {
 		);
 	}
 
-	if (!user) {
+	if (!isLoggedIn) {
 		return <Redirect to="/login" />;
 	}
 
