@@ -11,14 +11,7 @@ export function ProtectedRoute({ children }: Props) {
 
 	if (isLoading) {
 		return (
-			<div
-				style={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					minHeight: "100vh",
-				}}
-			>
+			<div className="flex justify-center items-center min-h-screen">
 				Loading...
 			</div>
 		);

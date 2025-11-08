@@ -25,34 +25,12 @@ export function Login() {
 	};
 
 	return (
-		<div
-			style={{
-				display: "flex",
-				justifyContent: "center",
-				alignItems: "center",
-				minHeight: "100vh",
-				backgroundColor: "#f5f5f5",
-			}}
-		>
-			<div
-				style={{
-					backgroundColor: "white",
-					padding: "2rem",
-					borderRadius: "8px",
-					boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-					width: "100%",
-					maxWidth: "400px",
-				}}
-			>
-				<h1 style={{ marginBottom: "1.5rem", textAlign: "center" }}>
-					Feedaka Login
-				</h1>
+		<div className="flex justify-center items-center min-h-screen bg-gray-100">
+			<div className="bg-white p-8 rounded-lg shadow w-full max-w-md">
+				<h1 className="mb-6 text-center text-2xl font-bold">Feedaka Login</h1>
 				<form onSubmit={handleSubmit}>
-					<div style={{ marginBottom: "1rem" }}>
-						<label
-							htmlFor="username"
-							style={{ display: "block", marginBottom: "0.5rem" }}
-						>
+					<div className="mb-4">
+						<label htmlFor="username" className="block mb-2">
 							Username
 						</label>
 						<input
@@ -61,20 +39,12 @@ export function Login() {
 							value={username}
 							onChange={(e) => setUsername(e.target.value)}
 							required
-							style={{
-								width: "100%",
-								padding: "0.5rem",
-								border: "1px solid #ccc",
-								borderRadius: "4px",
-							}}
+							className="w-full p-2 border border-gray-300 rounded disabled:opacity-70 disabled:cursor-not-allowed"
 							disabled={isLoading}
 						/>
 					</div>
-					<div style={{ marginBottom: "1rem" }}>
-						<label
-							htmlFor="password"
-							style={{ display: "block", marginBottom: "0.5rem" }}
-						>
+					<div className="mb-4">
+						<label htmlFor="password" className="block mb-2">
 							Password
 						</label>
 						<input
@@ -83,41 +53,19 @@ export function Login() {
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 							required
-							style={{
-								width: "100%",
-								padding: "0.5rem",
-								border: "1px solid #ccc",
-								borderRadius: "4px",
-							}}
+							className="w-full p-2 border border-gray-300 rounded disabled:opacity-70 disabled:cursor-not-allowed"
 							disabled={isLoading}
 						/>
 					</div>
 					{error && (
-						<div
-							style={{
-								color: "red",
-								marginBottom: "1rem",
-								padding: "0.5rem",
-								backgroundColor: "#fee",
-								borderRadius: "4px",
-							}}
-						>
+						<div className="text-red-600 mb-4 p-2 bg-red-50 rounded">
 							{error}
 						</div>
 					)}
 					<button
 						type="submit"
 						disabled={isLoading}
-						style={{
-							width: "100%",
-							padding: "0.75rem",
-							backgroundColor: "#007bff",
-							color: "white",
-							border: "none",
-							borderRadius: "4px",
-							cursor: isLoading ? "not-allowed" : "pointer",
-							opacity: isLoading ? 0.7 : 1,
-						}}
+						className="w-full p-3 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600 disabled:opacity-70 disabled:cursor-not-allowed"
 					>
 						{isLoading ? "Logging in..." : "Login"}
 					</button>
