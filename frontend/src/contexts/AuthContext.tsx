@@ -21,7 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [, executeLogin] = useMutation(LoginDocument);
 	const [, executeLogout] = useMutation(LogoutDocument);
-	const [currentUserResult, reexecuteCurrentUser] = useQuery({
+	const [currentUserResult] = useQuery({
 		query: GetCurrentUserDocument,
 	});
 
@@ -43,8 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 
 			if (result.data?.login?.user) {
-				// Refetch CurrentUser query to ensure session is established
-				reexecuteCurrentUser({ requestPolicy: "network-only" });
 				return { success: true };
 			}
 
@@ -61,12 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const logout = async () => {
 		try {
 			await executeLogout({});
-			// Refetch CurrentUser query to ensure session is cleared
-			reexecuteCurrentUser({ requestPolicy: "network-only" });
 		} catch (error) {
 			console.error("Logout failed:", error);
-			// Even on error, refetch to get the latest state
-			reexecuteCurrentUser({ requestPolicy: "network-only" });
 		}
 	};
 
