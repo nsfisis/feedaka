@@ -5,17 +5,15 @@ import {
 	faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useAuth } from "../contexts/AuthContext";
 import { MenuItem } from "./MenuItem";
 
 export function Navigation() {
 	const { logout, isLoggedIn } = useAuth();
-	const [, setLocation] = useLocation();
 
 	const handleLogout = async () => {
 		await logout();
-		setLocation("/login");
 	};
 
 	return (
