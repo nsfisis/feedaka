@@ -34,7 +34,7 @@ export function Navigation() {
 								type="button"
 								onClick={handleLogout}
 								className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
-								title={`Logout (${user.username})`}
+								title="Logout"
 							>
 								<FontAwesomeIcon icon={faRightFromBracket} />
 								<span className="hidden sm:inline">Logout</span>

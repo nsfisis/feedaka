@@ -15,18 +15,13 @@ export function Login() {
 		setError("");
 		setIsLoading(true);
 
-		try {
-			const success = await login(username, password);
-			if (success) {
-				setLocation("/");
-			} else {
-				setError("Invalid username or password");
-			}
-		} catch (_err) {
-			setError("An error occurred during login");
-		} finally {
-			setIsLoading(false);
+		const result = await login(username, password);
+		if (result.success) {
+			setLocation("/");
+		} else {
+			setError(result.error);
 		}
+		setIsLoading(false);
 	};
 
 	return (
