@@ -22,13 +22,13 @@ const urqlContextUser = { additionalTypenames: ["User"] };
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [, executeLogin] = useMutation(LoginDocument);
 	const [, executeLogout] = useMutation(LogoutDocument);
-	const [currentUserResult] = useQuery({
+	const [currentUserResult, reexecuteGetCurrentUser] = useQuery({
 		query: GetCurrentUserDocument,
 		context: urqlContextUser,
 	});
 
 	const isLoggedIn = !!currentUserResult.data?.currentUser;
-	const isLoading = currentUserResult.fetching;
+	const isLoading = currentUserResult.fetching || currentUserResult.stale;
 
 	const login = async (
 		username: string,
@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 
 			if (result.data?.login?.user) {
+				reexecuteGetCurrentUser({ requestPolicy: "network-only" });
 				return { success: true };
 			}
 
