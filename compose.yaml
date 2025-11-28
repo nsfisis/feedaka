@@ -3,7 +3,7 @@ services:
     build:
       context: .
     volumes:
-      - ./data/feedaka.db:/app/data/feedaka.db
+      - ./data:/app/data
     ports:
       - '127.0.0.1:8002:8080'
     environment:

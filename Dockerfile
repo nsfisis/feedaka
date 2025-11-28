@@ -10,12 +10,13 @@ COPY common/graphql/schema.graphql src/graphql/schema.graphql
 RUN npm run build
 
 ##########################################
-
-FROM golang:1.24-alpine AS backend-builder
+FROM golang:1.24 AS backend-builder
 
 WORKDIR /app
 
-RUN apk update && apk add --no-cache build-base sqlite
+RUN apt-get update && \
+    apt-get install -y libsqlite3-dev
+
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
@@ -24,12 +25,10 @@ COPY --from=frontend-builder /app/dist/ ./public/
 RUN CGO_ENABLED=1 GOOS=linux go build -o feedaka .
 
 ##########################################
-
-FROM alpine
+FROM gcr.io/distroless/cc-debian12
 
 WORKDIR /app
 COPY --from=backend-builder /app/feedaka /app
-RUN mkdir -p /app/data
 
 EXPOSE 8080
 CMD ["/app/feedaka"]
