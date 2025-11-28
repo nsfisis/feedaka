@@ -6,13 +6,15 @@ import (
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
+
+	"undef.ninja/x/feedaka/config"
 )
 
 //go:generate go tool sqlc generate
 //go:generate go tool gqlgen generate
 
 func main() {
-	config, err := LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -32,6 +34,6 @@ func main() {
 	} else if *createUser {
 		runCreateUser(database)
 	} else {
-		runServe(database, config)
+		runServe(database, cfg)
 	}
 }

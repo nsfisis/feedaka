@@ -24,6 +24,7 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"undef.ninja/x/feedaka/auth"
+	"undef.ninja/x/feedaka/config"
 	"undef.ninja/x/feedaka/db"
 	"undef.ninja/x/feedaka/graphql"
 	"undef.ninja/x/feedaka/graphql/resolver"
@@ -138,7 +139,7 @@ func scheduled(ctx context.Context, d time.Duration, fn func()) {
 	}()
 }
 
-func runServe(database *sql.DB, config *Config) {
+func runServe(database *sql.DB, cfg *config.Config) {
 	err := db.ValidateSchemaVersion(database)
 	if err != nil {
 		log.Fatal(err)
@@ -146,7 +147,7 @@ func runServe(database *sql.DB, config *Config) {
 
 	queries := db.New(database)
 
-	sessionConfig := auth.NewSessionConfig(config.SessionSecret, config.DevNonSecureCookie)
+	sessionConfig := auth.NewSessionConfig(cfg.SessionSecret, cfg.DevNonSecureCookie)
 
 	e := echo.New()
 
@@ -225,8 +226,8 @@ func runServe(database *sql.DB, config *Config) {
 		}
 	}()
 
-	log.Printf("Server starting on port %s...\n", config.Port)
-	err = e.Start(":" + config.Port)
+	log.Printf("Server starting on port %s...\n", cfg.Port)
+	err = e.Start(":" + cfg.Port)
 	if err != nil && err != http.ErrServerClosed {
 		log.Printf("Server error: %v\n", err)
 	}
