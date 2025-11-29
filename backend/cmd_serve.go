@@ -182,8 +182,7 @@ func runServe(database *sql.DB, cfg *config.Config) {
 
 	// GraphQL endpoints with authentication middleware
 	graphqlGroup := e.Group("/graphql")
-	graphqlGroup.Use(SessionAuthMiddleware(sessionConfig))
-	// !!! ここで echo.Context を GraphQL へ渡している意味は？
+	graphqlGroup.Use(auth.SessionAuthMiddleware(sessionConfig))
 	graphqlGroup.POST("", func(c echo.Context) error {
 		// Add Echo context to GraphQL context
 		ctx := context.WithValue(c.Request().Context(), "echo", c)

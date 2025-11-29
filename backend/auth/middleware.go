@@ -1,13 +1,12 @@
-package main
+package auth
 
 import (
 	"github.com/labstack/echo/v4"
-	"undef.ninja/x/feedaka/auth"
 	appcontext "undef.ninja/x/feedaka/context"
 )
 
 // SessionAuthMiddleware validates session and adds user info to context
-func SessionAuthMiddleware(sessionConfig *auth.SessionConfig) echo.MiddlewareFunc {
+func SessionAuthMiddleware(sessionConfig *SessionConfig) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Try to get user ID from session
