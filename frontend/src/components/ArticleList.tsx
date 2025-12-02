@@ -30,7 +30,9 @@ export function ArticleList({ articles, isReadView }: Props) {
 
 	if (visibleArticles.length === 0) {
 		return (
-			<div className="p-4 text-center text-gray-500">No articles found.</div>
+			<div className="py-8 text-center">
+				<p className="text-sm text-stone-400">No articles found.</p>
+			</div>
 		);
 	}
 
@@ -54,14 +56,14 @@ export function ArticleList({ articles, isReadView }: Props) {
 	);
 
 	return (
-		<div className="space-y-6 p-4">
+		<div className="space-y-8">
 			{Object.values(articlesByFeed).map(({ feed, articles: feedArticles }) => (
-				<div key={feed.id} className="space-y-2">
-					<h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+				<div key={feed.id} className="space-y-3">
+					<h3 className="border-b border-stone-200 pb-2 text-sm font-semibold uppercase tracking-wide text-stone-900">
 						{feed.title}
-						<span className="ml-2 text-sm font-normal text-gray-500">
-							({feedArticles.length} article
-							{feedArticles.length !== 1 ? "s" : ""})
+						<span className="ml-2 text-xs font-normal normal-case tracking-normal text-stone-400">
+							{feedArticles.length} article
+							{feedArticles.length !== 1 ? "s" : ""}
 						</span>
 					</h3>
 					<div className="space-y-1">

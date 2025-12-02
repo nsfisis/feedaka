@@ -16,24 +16,17 @@ export function Settings() {
 	};
 
 	return (
-		<div className="mx-auto max-w-4xl">
-			<h1 className="mb-6 text-2xl font-bold text-gray-900">Feed Settings</h1>
-
-			{/* Subscribe to New Feed Section */}
-			<div className="mb-8">
-				<h2 className="mb-4 text-xl font-semibold text-gray-800">
-					Subscribe to New Feed
-				</h2>
+		<div className="mx-auto max-w-3xl space-y-10">
+			<section>
 				<AddFeedForm onFeedAdded={handleFeedAdded} />
-			</div>
+			</section>
 
-			{/* Manage Feeds Section */}
-			<div className="mb-8">
-				<h2 className="mb-4 text-xl font-semibold text-gray-800">
-					Manage Feeds
+			<section>
+				<h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-stone-900">
+					Your Feeds
 				</h2>
 				<FeedList onFeedUnsubscribed={handleFeedUnsubscribed} />
-			</div>
+			</section>
 		</div>
 	);
 }

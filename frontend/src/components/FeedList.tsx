@@ -15,17 +15,29 @@ export function FeedList({ onFeedUnsubscribed }: Props) {
 	});
 
 	if (fetching) {
-		return <div className="p-4">Loading feeds...</div>;
+		return (
+			<div className="py-8 text-center">
+				<p className="text-sm text-stone-400">Loading feeds...</p>
+			</div>
+		);
 	}
 	if (error) {
-		return <div className="p-4 text-red-600">Error: {error.message}</div>;
+		return (
+			<div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+				Error: {error.message}
+			</div>
+		);
 	}
 	if (!data?.feeds || data.feeds.length === 0) {
-		return <div className="p-4 text-gray-500">No feeds added yet.</div>;
+		return (
+			<div className="py-8 text-center">
+				<p className="text-sm text-stone-400">No feeds added yet.</p>
+			</div>
+		);
 	}
 
 	return (
-		<div className="space-y-4 p-4">
+		<div className="space-y-3">
 			{data.feeds.map((feed) => (
 				<FeedItem
 					key={feed.id}

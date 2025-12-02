@@ -17,13 +17,16 @@ export function Navigation() {
 	};
 
 	return (
-		<nav className="bg-white shadow-sm border-b border-gray-200">
-			<div className="container mx-auto px-4">
-				<div className="flex items-center justify-between h-16">
-					<Link href="/" className="text-xl font-bold text-gray-900">
+		<nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-stone-200/60">
+			<div className="mx-auto max-w-5xl px-6">
+				<div className="flex items-center justify-between h-14">
+					<Link
+						href="/"
+						className="text-lg font-semibold tracking-tight text-stone-900"
+					>
 						feedaka
 					</Link>
-					<div className="flex items-center space-x-6">
+					<div className="flex items-center gap-1">
 						<MenuItem path="/unread" label="Unread" icon={faBookOpen} />
 						<MenuItem path="/read" label="Read" icon={faCircleCheck} />
 						<MenuItem path="/settings" label="Settings" icon={faGear} />
@@ -31,11 +34,13 @@ export function Navigation() {
 							<button
 								type="button"
 								onClick={handleLogout}
-								className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+								className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-all duration-200"
 								title="Logout"
 							>
 								<FontAwesomeIcon icon={faRightFromBracket} />
-								<span className="hidden sm:inline">Logout</span>
+								<span className="hidden sm:inline text-sm font-medium">
+									Logout
+								</span>
 							</button>
 						)}
 					</div>

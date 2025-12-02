@@ -48,43 +48,43 @@ export function AddFeedForm({ onFeedAdded }: Props) {
 	const isUrlValid = !url || isValidUrl(url);
 
 	return (
-		<form onSubmit={handleSubmit} className="space-y-4 p-4">
-			<div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-				<h3 className="text-lg font-semibold text-gray-900 mb-4">
+		<form onSubmit={handleSubmit}>
+			<div className="rounded-xl border border-stone-200 bg-white p-5">
+				<h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-stone-900">
 					Subscribe to New Feed
 				</h3>
-				<div className="flex gap-2">
+				<div className="flex gap-3">
 					<div className="flex-1">
 						<input
 							type="url"
 							value={url}
 							onChange={(e) => setUrl(e.target.value)}
 							placeholder="https://example.com/feed.xml"
-							className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+							className={`w-full rounded-lg border bg-white px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
 								isUrlValid
-									? "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-									: "border-red-300 focus:border-red-500 focus:ring-red-500"
+									? "border-stone-200 focus:border-sky-500 focus:ring-sky-500/20"
+									: "border-red-300 focus:border-red-500 focus:ring-red-500/20"
 							}`}
 							disabled={fetching}
 						/>
 						{!isUrlValid && (
-							<p className="mt-1 text-sm text-red-600">
+							<p className="mt-2 text-sm text-red-600">
 								Please enter a valid URL (http:// or https://)
 							</p>
 						)}
-						{error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+						{error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 					</div>
 					<button
 						type="submit"
 						disabled={fetching || !url.trim() || !isUrlValid}
-						className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+						className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
 					>
 						{fetching ? (
-							<FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+							<FontAwesomeIcon icon={faSpinner} spin />
 						) : (
-							<FontAwesomeIcon icon={faPlus} className="mr-2" />
+							<FontAwesomeIcon icon={faPlus} />
 						)}
-						Subscribe
+						<span>Subscribe</span>
 					</button>
 				</div>
 			</div>

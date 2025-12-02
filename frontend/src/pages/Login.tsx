@@ -25,51 +25,64 @@ export function Login() {
 	};
 
 	return (
-		<div className="flex justify-center items-center min-h-screen bg-gray-100">
-			<div className="bg-white p-8 rounded-lg shadow w-full max-w-md">
-				<h1 className="mb-6 text-center text-2xl font-bold">Feedaka Login</h1>
-				<form onSubmit={handleSubmit}>
-					<div className="mb-4">
-						<label htmlFor="username" className="block mb-2">
-							Username
-						</label>
-						<input
-							id="username"
-							type="text"
-							value={username}
-							onChange={(e) => setUsername(e.target.value)}
-							required
-							className="w-full p-2 border border-gray-300 rounded disabled:opacity-70 disabled:cursor-not-allowed"
-							disabled={isLoading}
-						/>
-					</div>
-					<div className="mb-4">
-						<label htmlFor="password" className="block mb-2">
-							Password
-						</label>
-						<input
-							id="password"
-							type="password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							required
-							className="w-full p-2 border border-gray-300 rounded disabled:opacity-70 disabled:cursor-not-allowed"
-							disabled={isLoading}
-						/>
-					</div>
-					{error && (
-						<div className="text-red-600 mb-4 p-2 bg-red-50 rounded">
-							{error}
+		<div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-100 to-stone-50 px-4">
+			<div className="w-full max-w-sm">
+				<div className="mb-8 text-center">
+					<h1 className="text-2xl font-semibold tracking-tight text-stone-900">
+						feedaka
+					</h1>
+					<p className="mt-2 text-sm text-stone-500">Sign in to your account</p>
+				</div>
+				<div className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+					<form onSubmit={handleSubmit} className="space-y-5">
+						<div>
+							<label
+								htmlFor="username"
+								className="mb-1.5 block text-sm font-medium text-stone-700"
+							>
+								Username
+							</label>
+							<input
+								id="username"
+								type="text"
+								value={username}
+								onChange={(e) => setUsername(e.target.value)}
+								required
+								className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 transition-all duration-200 placeholder:text-stone-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+								disabled={isLoading}
+							/>
 						</div>
-					)}
-					<button
-						type="submit"
-						disabled={isLoading}
-						className="w-full p-3 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-600 disabled:opacity-70 disabled:cursor-not-allowed"
-					>
-						{isLoading ? "Logging in..." : "Login"}
-					</button>
-				</form>
+						<div>
+							<label
+								htmlFor="password"
+								className="mb-1.5 block text-sm font-medium text-stone-700"
+							>
+								Password
+							</label>
+							<input
+								id="password"
+								type="password"
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								required
+								className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 transition-all duration-200 placeholder:text-stone-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/20 disabled:cursor-not-allowed disabled:opacity-70"
+								disabled={isLoading}
+							/>
+						</div>
+						{error && (
+							<div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+								{error}
+							</div>
+						)}
+						<button
+							type="submit"
+							disabled={isLoading}
+							className="w-full rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+						>
+							{isLoading ? "Signing in..." : "Sign in"}
+						</button>
+					</form>
+				</div>
 			</div>
 		</div>
 	);

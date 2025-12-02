@@ -7,9 +7,9 @@ interface Props {
 
 export function Layout({ children }: Props) {
 	return (
-		<div className="min-h-screen bg-gray-50">
+		<div className="min-h-screen bg-stone-50">
 			<Navigation />
-			<main className="container mx-auto px-4 py-8">{children}</main>
+			<main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
 		</div>
 	);
 }

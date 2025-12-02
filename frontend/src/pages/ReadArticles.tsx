@@ -11,19 +11,27 @@ export function ReadArticles() {
 	});
 
 	if (fetching) {
-		return <div className="p-4">Loading read articles...</div>;
+		return (
+			<div className="py-8 text-center">
+				<p className="text-sm text-stone-400">Loading read articles...</p>
+			</div>
+		);
 	}
 
 	if (error) {
-		return <div className="p-4 text-red-600">Error: {error.message}</div>;
+		return (
+			<div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
+				Error: {error.message}
+			</div>
+		);
 	}
 
 	return (
 		<div>
-			<div className="border-b border-gray-200 bg-white px-4 py-3">
-				<h1 className="text-xl font-semibold text-gray-900">Read Articles</h1>
+			<div className="mb-6">
+				<h1 className="text-xl font-semibold text-stone-900">Read</h1>
 				{data?.readArticles && (
-					<p className="text-sm text-gray-500">
+					<p className="mt-1 text-sm text-stone-400">
 						{data.readArticles.length} article
 						{data.readArticles.length !== 1 ? "s" : ""}
 					</p>
