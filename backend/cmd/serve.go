@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -28,11 +28,6 @@ import (
 	"undef.ninja/x/feedaka/db"
 	"undef.ninja/x/feedaka/graphql"
 	"undef.ninja/x/feedaka/graphql/resolver"
-)
-
-var (
-	//go:embed public/*
-	publicFS embed.FS
 )
 
 func fetchOneFeed(feedID int64, url string, ctx context.Context, queries *db.Queries) error {
@@ -139,7 +134,7 @@ func scheduled(ctx context.Context, d time.Duration, fn func()) {
 	}()
 }
 
-func runServe(database *sql.DB, cfg *config.Config) {
+func RunServe(database *sql.DB, cfg *config.Config, publicFS embed.FS) {
 	err := db.ValidateSchemaVersion(database)
 	if err != nil {
 		log.Fatal(err)

@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"database/sql"
@@ -7,7 +7,7 @@ import (
 	"undef.ninja/x/feedaka/db"
 )
 
-func runMigrate(database *sql.DB) {
+func RunMigrate(database *sql.DB) {
 	log.Println("Running database migrations...")
 	err := db.RunMigrations(database)
 	if err != nil {

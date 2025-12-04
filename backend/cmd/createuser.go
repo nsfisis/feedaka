@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"bufio"
@@ -14,7 +14,7 @@ import (
 	"undef.ninja/x/feedaka/db"
 )
 
-func runCreateUser(database *sql.DB) {
+func RunCreateUser(database *sql.DB) {
 	queries := db.New(database)
 	reader := bufio.NewReader(os.Stdin)
 

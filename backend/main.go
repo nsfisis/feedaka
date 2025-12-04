@@ -2,16 +2,23 @@ package main
 
 import (
 	"database/sql"
+	"embed"
 	"flag"
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 
+	"undef.ninja/x/feedaka/cmd"
 	"undef.ninja/x/feedaka/config"
 )
 
 //go:generate go tool sqlc generate
 //go:generate go tool gqlgen generate
+
+var (
+	//go:embed public/*
+	publicFS embed.FS
+)
 
 func main() {
 	cfg, err := config.LoadConfig()
@@ -30,10 +37,10 @@ func main() {
 	defer database.Close()
 
 	if *migrate {
-		runMigrate(database)
+		cmd.RunMigrate(database)
 	} else if *createUser {
-		runCreateUser(database)
+		cmd.RunCreateUser(database)
 	} else {
-		runServe(database, cfg)
+		cmd.RunServe(database, cfg, publicFS)
 	}
 }
