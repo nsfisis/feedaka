@@ -492,7 +492,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../../common/graphql/schema.graphql", Input: `scalar DateTime
+	{Name: "../../graphql/schema.graphql", Input: `scalar DateTime
 
 """
 Represents a feed subscription in the system

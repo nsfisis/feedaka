@@ -6,7 +6,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
 COPY frontend/ ./
-COPY common/graphql/schema.graphql src/graphql/schema.graphql
+COPY graphql/schema.graphql src/graphql/schema.graphql
 RUN npm run build
 
 ##########################################

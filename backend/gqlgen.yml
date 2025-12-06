@@ -1,5 +1,5 @@
 schema:
-  - ../common/graphql/schema.graphql
+  - ../graphql/schema.graphql
 
 exec:
   package: graphql
