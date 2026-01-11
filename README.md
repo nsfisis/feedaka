@@ -2,6 +2,9 @@
 
 A simple RSS/Atom feed reader. This is my personal project and is developed for my use only.
 
+> [!NOTE]
+> Built with AI & Vibe Coding - This project is developed through collaborative coding with AI assistants.
+
 ## Requirements
 
 * Go 1.24+
