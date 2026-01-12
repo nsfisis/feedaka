@@ -42,34 +42,6 @@ func (q *Queries) CheckArticleExistsByGUID(ctx context.Context, guid string) (in
 	return article_exists, err
 }
 
-const getAllArticleGUIDs = `-- name: GetAllArticleGUIDs :many
-SELECT DISTINCT guid
-FROM articles
-`
-
-func (q *Queries) GetAllArticleGUIDs(ctx context.Context) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getAllArticleGUIDs)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []string{}
-	for rows.Next() {
-		var guid string
-		if err := rows.Scan(&guid); err != nil {
-			return nil, err
-		}
-		items = append(items, guid)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const createArticle = `-- name: CreateArticle :one
 INSERT INTO articles (feed_id, guid, title, url, is_read)
 VALUES (?, ?, ?, ?, ?)

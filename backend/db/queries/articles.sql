@@ -77,7 +77,3 @@ SELECT EXISTS(
     SELECT 1 FROM articles
     WHERE guid = ?
 ) as article_exists;
-
--- name: GetAllArticleGUIDs :many
-SELECT DISTINCT guid
-FROM articles;
