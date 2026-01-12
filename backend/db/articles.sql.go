@@ -179,13 +179,19 @@ func (q *Queries) GetArticlesByFeed(ctx context.Context, feedID int64) ([]Articl
 }
 
 const getReadArticles = `-- name: GetReadArticles :many
-SELECT
-    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
-FROM articles AS a
-INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
-ORDER BY a.id DESC
+WITH ranked AS (
+    SELECT
+        a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+        f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed,
+        ROW_NUMBER() OVER (PARTITION BY a.guid ORDER BY a.id) as rn
+    FROM articles AS a
+    INNER JOIN feeds AS f ON a.feed_id = f.id
+    WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
+)
+SELECT id, feed_id, guid, title, url, is_read, feed_id_2, feed_url, feed_title, feed_is_subscribed
+FROM ranked
+WHERE rn = 1
+ORDER BY id DESC
 LIMIT 100
 `
 
@@ -237,13 +243,19 @@ func (q *Queries) GetReadArticles(ctx context.Context, userID int64) ([]GetReadA
 }
 
 const getUnreadArticles = `-- name: GetUnreadArticles :many
-SELECT
-    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
-FROM articles AS a
-INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
-ORDER BY a.id DESC
+WITH ranked AS (
+    SELECT
+        a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+        f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed,
+        ROW_NUMBER() OVER (PARTITION BY a.guid ORDER BY a.id) as rn
+    FROM articles AS a
+    INNER JOIN feeds AS f ON a.feed_id = f.id
+    WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
+)
+SELECT id, feed_id, guid, title, url, is_read, feed_id_2, feed_url, feed_title, feed_is_subscribed
+FROM ranked
+WHERE rn = 1
+ORDER BY id DESC
 LIMIT 100
 `
 
