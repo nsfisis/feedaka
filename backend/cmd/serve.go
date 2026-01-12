@@ -47,16 +47,18 @@ func fetchOneFeed(feedID int64, url string, ctx context.Context, queries *db.Que
 	if err != nil {
 		return err
 	}
+	// Get GUIDs for this feed (for updating existing articles)
 	guids, err := queries.GetArticleGUIDsByFeed(ctx, feedID)
 	if err != nil {
 		return err
 	}
-	existingArticleGUIDs := make(map[string]bool)
+	existingFeedGUIDs := make(map[string]bool)
 	for _, guid := range guids {
-		existingArticleGUIDs[guid] = true
+		existingFeedGUIDs[guid] = true
 	}
 	for _, item := range feed.Items {
-		if existingArticleGUIDs[item.GUID] {
+		if existingFeedGUIDs[item.GUID] {
+			// Article exists in this feed, update it
 			err := queries.UpdateArticle(ctx, db.UpdateArticleParams{
 				Title:  item.Title,
 				Url:    item.Link,
@@ -67,7 +69,17 @@ func fetchOneFeed(feedID int64, url string, ctx context.Context, queries *db.Que
 				return err
 			}
 		} else {
-			_, err := queries.CreateArticle(ctx, db.CreateArticleParams{
+			// Check if article with same GUID exists globally (in any feed)
+			exists, err := queries.CheckArticleExistsByGUID(ctx, item.GUID)
+			if err != nil {
+				return err
+			}
+			if exists == 1 {
+				// Article already exists in another feed, skip
+				continue
+			}
+			// Create new article
+			_, err = queries.CreateArticle(ctx, db.CreateArticleParams{
 				FeedID: feedID,
 				Guid:   item.GUID,
 				Title:  item.Title,

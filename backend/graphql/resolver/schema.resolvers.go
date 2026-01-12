@@ -43,8 +43,18 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 		return nil, fmt.Errorf("failed to insert feed: %w", err)
 	}
 
-	// Insert articles from the feed
+	// Insert articles from the feed (skip duplicates by guid)
 	for _, item := range feed.Items {
+		// Check if article with same GUID already exists globally
+		exists, err := r.Queries.CheckArticleExistsByGUID(ctx, item.GUID)
+		if err != nil {
+			fmt.Printf("Failed to check article existence: %v\n", err)
+			continue
+		}
+		if exists == 1 {
+			// Article already exists, skip
+			continue
+		}
 		_, err = r.Queries.CreateArticle(ctx, db.CreateArticleParams{
 			FeedID: dbFeed.ID,
 			Guid:   item.GUID,

@@ -28,6 +28,48 @@ func (q *Queries) CheckArticleExists(ctx context.Context, arg CheckArticleExists
 	return article_exists, err
 }
 
+const checkArticleExistsByGUID = `-- name: CheckArticleExistsByGUID :one
+SELECT EXISTS(
+    SELECT 1 FROM articles
+    WHERE guid = ?
+) as article_exists
+`
+
+func (q *Queries) CheckArticleExistsByGUID(ctx context.Context, guid string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkArticleExistsByGUID, guid)
+	var article_exists int64
+	err := row.Scan(&article_exists)
+	return article_exists, err
+}
+
+const getAllArticleGUIDs = `-- name: GetAllArticleGUIDs :many
+SELECT DISTINCT guid
+FROM articles
+`
+
+func (q *Queries) GetAllArticleGUIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, getAllArticleGUIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var guid string
+		if err := rows.Scan(&guid); err != nil {
+			return nil, err
+		}
+		items = append(items, guid)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createArticle = `-- name: CreateArticle :one
 INSERT INTO articles (feed_id, guid, title, url, is_read)
 VALUES (?, ?, ?, ?, ?)
@@ -179,19 +221,13 @@ func (q *Queries) GetArticlesByFeed(ctx context.Context, feedID int64) ([]Articl
 }
 
 const getReadArticles = `-- name: GetReadArticles :many
-WITH ranked AS (
-    SELECT
-        a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-        f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed,
-        ROW_NUMBER() OVER (PARTITION BY a.guid ORDER BY a.id) as rn
-    FROM articles AS a
-    INNER JOIN feeds AS f ON a.feed_id = f.id
-    WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
-)
-SELECT id, feed_id, guid, title, url, is_read, feed_id_2, feed_url, feed_title, feed_is_subscribed
-FROM ranked
-WHERE rn = 1
-ORDER BY id DESC
+SELECT
+    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
+FROM articles AS a
+INNER JOIN feeds AS f ON a.feed_id = f.id
+WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
+ORDER BY a.id DESC
 LIMIT 100
 `
 
@@ -243,19 +279,13 @@ func (q *Queries) GetReadArticles(ctx context.Context, userID int64) ([]GetReadA
 }
 
 const getUnreadArticles = `-- name: GetUnreadArticles :many
-WITH ranked AS (
-    SELECT
-        a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
-        f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed,
-        ROW_NUMBER() OVER (PARTITION BY a.guid ORDER BY a.id) as rn
-    FROM articles AS a
-    INNER JOIN feeds AS f ON a.feed_id = f.id
-    WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
-)
-SELECT id, feed_id, guid, title, url, is_read, feed_id_2, feed_url, feed_title, feed_is_subscribed
-FROM ranked
-WHERE rn = 1
-ORDER BY id DESC
+SELECT
+    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
+FROM articles AS a
+INNER JOIN feeds AS f ON a.feed_id = f.id
+WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
+ORDER BY a.id DESC
 LIMIT 100
 `
 
