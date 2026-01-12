@@ -28,6 +28,20 @@ func (q *Queries) CheckArticleExists(ctx context.Context, arg CheckArticleExists
 	return article_exists, err
 }
 
+const checkArticleExistsByGUID = `-- name: CheckArticleExistsByGUID :one
+SELECT EXISTS(
+    SELECT 1 FROM articles
+    WHERE guid = ?
+) as article_exists
+`
+
+func (q *Queries) CheckArticleExistsByGUID(ctx context.Context, guid string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, checkArticleExistsByGUID, guid)
+	var article_exists int64
+	err := row.Scan(&article_exists)
+	return article_exists, err
+}
+
 const createArticle = `-- name: CreateArticle :one
 INSERT INTO articles (feed_id, guid, title, url, is_read)
 VALUES (?, ?, ?, ?, ?)

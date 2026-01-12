@@ -71,3 +71,9 @@ SELECT EXISTS(
     SELECT 1 FROM articles
     WHERE feed_id = ? AND guid = ?
 ) as article_exists;
+
+-- name: CheckArticleExistsByGUID :one
+SELECT EXISTS(
+    SELECT 1 FROM articles
+    WHERE guid = ?
+) as article_exists;
