@@ -3,34 +3,11 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  frontend:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Generate code
-        run: cd frontend && npm run generate
-
-      - name: Lint
-        run: cd frontend && npm run check
-
-      - name: Build
-        run: cd frontend && npm run build
-
-  backend:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,16 +16,36 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
+          cache-dependency-path: backend/go.sum
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install just
         uses: extractions/setup-just@v3
 
-      - name: Generate code
-        run: cd backend && just generate
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
 
-      - name: Lint
-        run: cd backend && just check
+      - name: Run check
+        run: just check
 
-      - name: Build
-        run: cd backend && just build
+      - name: Run build
+        run: just build
+
+      - name: Run fmt
+        run: just fmt
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Error: Found uncommitted changes after running 'just fmt' or 'just generate'"
+            git diff --stat=9999
+            exit 1
+          fi
