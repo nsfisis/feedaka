@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mmcdole/gofeed"
 	"undef.ninja/x/feedaka/auth"
 	"undef.ninja/x/feedaka/db"
+	"undef.ninja/x/feedaka/feed"
 	gql "undef.ninja/x/feedaka/graphql"
 	"undef.ninja/x/feedaka/graphql/model"
 )
@@ -26,8 +26,7 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 	}
 
 	// Fetch the feed to get its title
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURL(url)
+	f, err := feed.Fetch(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse feed: %w", err)
 	}
@@ -35,7 +34,7 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 	// Insert the feed into the database
 	dbFeed, err := r.Queries.CreateFeed(ctx, db.CreateFeedParams{
 		Url:       url,
-		Title:     feed.Title,
+		Title:     f.Title,
 		FetchedAt: time.Now().UTC().Format(time.RFC3339),
 		UserID:    userID,
 	})
@@ -43,29 +42,9 @@ func (r *mutationResolver) AddFeed(ctx context.Context, url string) (*model.Feed
 		return nil, fmt.Errorf("failed to insert feed: %w", err)
 	}
 
-	// Insert articles from the feed (skip duplicates by guid)
-	for _, item := range feed.Items {
-		// Check if article with same GUID already exists globally
-		exists, err := r.Queries.CheckArticleExistsByGUID(ctx, item.GUID)
-		if err != nil {
-			fmt.Printf("Failed to check article existence: %v\n", err)
-			continue
-		}
-		if exists == 1 {
-			// Article already exists, skip
-			continue
-		}
-		_, err = r.Queries.CreateArticle(ctx, db.CreateArticleParams{
-			FeedID: dbFeed.ID,
-			Guid:   item.GUID,
-			Title:  item.Title,
-			Url:    item.Link,
-			IsRead: 0,
-		})
-		if err != nil {
-			// Log but don't fail on individual article errors
-			fmt.Printf("Failed to insert article: %v\n", err)
-		}
+	// Sync articles from the feed
+	if err := feed.Sync(ctx, r.Queries, dbFeed.ID, f); err != nil {
+		return nil, fmt.Errorf("failed to sync articles: %w", err)
 	}
 
 	return &model.Feed{

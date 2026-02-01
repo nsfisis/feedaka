@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"embed"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,78 +19,23 @@ import (
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/mmcdole/gofeed"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"undef.ninja/x/feedaka/auth"
 	"undef.ninja/x/feedaka/config"
 	"undef.ninja/x/feedaka/db"
+	"undef.ninja/x/feedaka/feed"
 	"undef.ninja/x/feedaka/graphql"
 	"undef.ninja/x/feedaka/graphql/resolver"
 )
 
 func fetchOneFeed(feedID int64, url string, ctx context.Context, queries *db.Queries) error {
 	log.Printf("Fetching %s...\n", url)
-	fp := gofeed.NewParser()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	feed, err := fp.ParseURLWithContext(url, ctx)
-	if err != nil {
-		return fmt.Errorf("Failed to fetch %s: %v\n", url, err)
-	}
-	err = queries.UpdateFeedMetadata(ctx, db.UpdateFeedMetadataParams{
-		Title:     feed.Title,
-		FetchedAt: time.Now().UTC().Format(time.RFC3339),
-		ID:        feedID,
-	})
+	f, err := feed.Fetch(ctx, url)
 	if err != nil {
 		return err
 	}
-	// Get GUIDs for this feed (for updating existing articles)
-	guids, err := queries.GetArticleGUIDsByFeed(ctx, feedID)
-	if err != nil {
-		return err
-	}
-	existingFeedGUIDs := make(map[string]bool)
-	for _, guid := range guids {
-		existingFeedGUIDs[guid] = true
-	}
-	for _, item := range feed.Items {
-		if existingFeedGUIDs[item.GUID] {
-			// Article exists in this feed, update it
-			err := queries.UpdateArticle(ctx, db.UpdateArticleParams{
-				Title:  item.Title,
-				Url:    item.Link,
-				FeedID: feedID,
-				Guid:   item.GUID,
-			})
-			if err != nil {
-				return err
-			}
-		} else {
-			// Check if article with same GUID exists globally (in any feed)
-			exists, err := queries.CheckArticleExistsByGUID(ctx, item.GUID)
-			if err != nil {
-				return err
-			}
-			if exists == 1 {
-				// Article already exists in another feed, skip
-				continue
-			}
-			// Create new article
-			_, err = queries.CreateArticle(ctx, db.CreateArticleParams{
-				FeedID: feedID,
-				Guid:   item.GUID,
-				Title:  item.Title,
-				Url:    item.Link,
-				IsRead: 0,
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return feed.Sync(ctx, queries, feedID, f)
 }
 
 func listFeedsToBeFetched(ctx context.Context, queries *db.Queries) (map[int64]string, error) {
