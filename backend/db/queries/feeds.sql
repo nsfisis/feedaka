@@ -37,3 +37,10 @@ WHERE is_subscribed = 1;
 UPDATE feeds
 SET is_subscribed = 0
 WHERE id = ?;
+
+-- name: GetFeedUnreadCounts :many
+SELECT f.id as feed_id, COUNT(a.id) as unread_count
+FROM feeds AS f
+LEFT JOIN articles AS a ON f.id = a.feed_id AND a.is_read = 0
+WHERE f.is_subscribed = 1 AND f.user_id = ?
+GROUP BY f.id;

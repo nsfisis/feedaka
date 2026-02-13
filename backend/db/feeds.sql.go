@@ -96,6 +96,42 @@ func (q *Queries) GetFeedByURL(ctx context.Context, arg GetFeedByURLParams) (Fee
 	return i, err
 }
 
+const getFeedUnreadCounts = `-- name: GetFeedUnreadCounts :many
+SELECT f.id as feed_id, COUNT(a.id) as unread_count
+FROM feeds AS f
+LEFT JOIN articles AS a ON f.id = a.feed_id AND a.is_read = 0
+WHERE f.is_subscribed = 1 AND f.user_id = ?
+GROUP BY f.id
+`
+
+type GetFeedUnreadCountsRow struct {
+	FeedID      int64
+	UnreadCount int64
+}
+
+func (q *Queries) GetFeedUnreadCounts(ctx context.Context, userID int64) ([]GetFeedUnreadCountsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getFeedUnreadCounts, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetFeedUnreadCountsRow{}
+	for rows.Next() {
+		var i GetFeedUnreadCountsRow
+		if err := rows.Scan(&i.FeedID, &i.UnreadCount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFeeds = `-- name: GetFeeds :many
 SELECT id, url, title, fetched_at, is_subscribed, user_id
 FROM feeds

@@ -10,10 +10,9 @@ import {
 	MarkArticleUnreadDocument,
 } from "../graphql/generated/graphql";
 
-type Article = NonNullable<
-	| GetUnreadArticlesQuery["unreadArticles"]
-	| GetReadArticlesQuery["readArticles"]
->[0];
+type Article =
+	| GetUnreadArticlesQuery["unreadArticles"]["articles"][number]
+	| GetReadArticlesQuery["readArticles"]["articles"][number];
 
 interface Props {
 	article: Article;

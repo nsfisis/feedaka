@@ -20,6 +20,14 @@ type Article struct {
 	Feed *Feed `json:"feed"`
 }
 
+// A paginated list of articles
+type ArticleConnection struct {
+	// The list of articles
+	Articles []*Article `json:"articles"`
+	// Pagination information
+	PageInfo *PageInfo `json:"pageInfo"`
+}
+
 // Authentication payload returned from login mutation
 type AuthPayload struct {
 	// The authenticated user
@@ -38,12 +46,22 @@ type Feed struct {
 	FetchedAt string `json:"fetchedAt"`
 	// Whether the user is currently subscribed to this feed
 	IsSubscribed bool `json:"isSubscribed"`
+	// Number of unread articles in this feed
+	UnreadCount int32 `json:"unreadCount"`
 	// Articles belonging to this feed
 	Articles []*Article `json:"articles"`
 }
 
 // Root mutation type for modifying data
 type Mutation struct {
+}
+
+// Pagination information for cursor-based pagination
+type PageInfo struct {
+	// Whether there are more items after the last item in this page
+	HasNextPage bool `json:"hasNextPage"`
+	// Cursor of the last item in this page
+	EndCursor *string `json:"endCursor,omitempty"`
 }
 
 // Root query type for reading data

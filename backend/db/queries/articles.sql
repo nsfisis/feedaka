@@ -6,25 +6,45 @@ FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
 WHERE a.id = ?;
 
--- name: GetUnreadArticles :many
+-- name: GetArticlesPaginated :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ?
 ORDER BY a.id DESC
-LIMIT 100;
+LIMIT ?;
 
--- name: GetReadArticles :many
+-- name: GetArticlesPaginatedAfter :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ? AND a.id < ?
 ORDER BY a.id DESC
-LIMIT 100;
+LIMIT ?;
+
+-- name: GetArticlesByFeedPaginated :many
+SELECT
+    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
+FROM articles AS a
+INNER JOIN feeds AS f ON a.feed_id = f.id
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ? AND a.feed_id = ?
+ORDER BY a.id DESC
+LIMIT ?;
+
+-- name: GetArticlesByFeedPaginatedAfter :many
+SELECT
+    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
+FROM articles AS a
+INNER JOIN feeds AS f ON a.feed_id = f.id
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ? AND a.feed_id = ? AND a.id < ?
+ORDER BY a.id DESC
+LIMIT ?;
 
 -- name: GetArticlesByFeed :many
 SELECT id, feed_id, guid, title, url, is_read

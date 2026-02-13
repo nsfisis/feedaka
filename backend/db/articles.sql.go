@@ -192,18 +192,25 @@ func (q *Queries) GetArticlesByFeed(ctx context.Context, feedID int64) ([]Articl
 	return items, nil
 }
 
-const getReadArticles = `-- name: GetReadArticles :many
+const getArticlesByFeedPaginated = `-- name: GetArticlesByFeedPaginated :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 1 AND f.is_subscribed = 1 AND f.user_id = ?
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ? AND a.feed_id = ?
 ORDER BY a.id DESC
-LIMIT 100
+LIMIT ?
 `
 
-type GetReadArticlesRow struct {
+type GetArticlesByFeedPaginatedParams struct {
+	IsRead int64
+	UserID int64
+	FeedID int64
+	Limit  int64
+}
+
+type GetArticlesByFeedPaginatedRow struct {
 	ID               int64
 	FeedID           int64
 	Guid             string
@@ -216,15 +223,20 @@ type GetReadArticlesRow struct {
 	FeedIsSubscribed int64
 }
 
-func (q *Queries) GetReadArticles(ctx context.Context, userID int64) ([]GetReadArticlesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getReadArticles, userID)
+func (q *Queries) GetArticlesByFeedPaginated(ctx context.Context, arg GetArticlesByFeedPaginatedParams) ([]GetArticlesByFeedPaginatedRow, error) {
+	rows, err := q.db.QueryContext(ctx, getArticlesByFeedPaginated,
+		arg.IsRead,
+		arg.UserID,
+		arg.FeedID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetReadArticlesRow{}
+	items := []GetArticlesByFeedPaginatedRow{}
 	for rows.Next() {
-		var i GetReadArticlesRow
+		var i GetArticlesByFeedPaginatedRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.FeedID,
@@ -250,18 +262,26 @@ func (q *Queries) GetReadArticles(ctx context.Context, userID int64) ([]GetReadA
 	return items, nil
 }
 
-const getUnreadArticles = `-- name: GetUnreadArticles :many
+const getArticlesByFeedPaginatedAfter = `-- name: GetArticlesByFeedPaginatedAfter :many
 SELECT
     a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
     f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
 FROM articles AS a
 INNER JOIN feeds AS f ON a.feed_id = f.id
-WHERE a.is_read = 0 AND f.is_subscribed = 1 AND f.user_id = ?
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ? AND a.feed_id = ? AND a.id < ?
 ORDER BY a.id DESC
-LIMIT 100
+LIMIT ?
 `
 
-type GetUnreadArticlesRow struct {
+type GetArticlesByFeedPaginatedAfterParams struct {
+	IsRead int64
+	UserID int64
+	FeedID int64
+	ID     int64
+	Limit  int64
+}
+
+type GetArticlesByFeedPaginatedAfterRow struct {
 	ID               int64
 	FeedID           int64
 	Guid             string
@@ -274,15 +294,155 @@ type GetUnreadArticlesRow struct {
 	FeedIsSubscribed int64
 }
 
-func (q *Queries) GetUnreadArticles(ctx context.Context, userID int64) ([]GetUnreadArticlesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUnreadArticles, userID)
+func (q *Queries) GetArticlesByFeedPaginatedAfter(ctx context.Context, arg GetArticlesByFeedPaginatedAfterParams) ([]GetArticlesByFeedPaginatedAfterRow, error) {
+	rows, err := q.db.QueryContext(ctx, getArticlesByFeedPaginatedAfter,
+		arg.IsRead,
+		arg.UserID,
+		arg.FeedID,
+		arg.ID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetUnreadArticlesRow{}
+	items := []GetArticlesByFeedPaginatedAfterRow{}
 	for rows.Next() {
-		var i GetUnreadArticlesRow
+		var i GetArticlesByFeedPaginatedAfterRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FeedID,
+			&i.Guid,
+			&i.Title,
+			&i.Url,
+			&i.IsRead,
+			&i.FeedID2,
+			&i.FeedUrl,
+			&i.FeedTitle,
+			&i.FeedIsSubscribed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getArticlesPaginated = `-- name: GetArticlesPaginated :many
+SELECT
+    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
+FROM articles AS a
+INNER JOIN feeds AS f ON a.feed_id = f.id
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ?
+ORDER BY a.id DESC
+LIMIT ?
+`
+
+type GetArticlesPaginatedParams struct {
+	IsRead int64
+	UserID int64
+	Limit  int64
+}
+
+type GetArticlesPaginatedRow struct {
+	ID               int64
+	FeedID           int64
+	Guid             string
+	Title            string
+	Url              string
+	IsRead           int64
+	FeedID2          int64
+	FeedUrl          string
+	FeedTitle        string
+	FeedIsSubscribed int64
+}
+
+func (q *Queries) GetArticlesPaginated(ctx context.Context, arg GetArticlesPaginatedParams) ([]GetArticlesPaginatedRow, error) {
+	rows, err := q.db.QueryContext(ctx, getArticlesPaginated, arg.IsRead, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetArticlesPaginatedRow{}
+	for rows.Next() {
+		var i GetArticlesPaginatedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FeedID,
+			&i.Guid,
+			&i.Title,
+			&i.Url,
+			&i.IsRead,
+			&i.FeedID2,
+			&i.FeedUrl,
+			&i.FeedTitle,
+			&i.FeedIsSubscribed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getArticlesPaginatedAfter = `-- name: GetArticlesPaginatedAfter :many
+SELECT
+    a.id, a.feed_id, a.guid, a.title, a.url, a.is_read,
+    f.id as feed_id_2, f.url as feed_url, f.title as feed_title, f.is_subscribed as feed_is_subscribed
+FROM articles AS a
+INNER JOIN feeds AS f ON a.feed_id = f.id
+WHERE a.is_read = ? AND f.is_subscribed = 1 AND f.user_id = ? AND a.id < ?
+ORDER BY a.id DESC
+LIMIT ?
+`
+
+type GetArticlesPaginatedAfterParams struct {
+	IsRead int64
+	UserID int64
+	ID     int64
+	Limit  int64
+}
+
+type GetArticlesPaginatedAfterRow struct {
+	ID               int64
+	FeedID           int64
+	Guid             string
+	Title            string
+	Url              string
+	IsRead           int64
+	FeedID2          int64
+	FeedUrl          string
+	FeedTitle        string
+	FeedIsSubscribed int64
+}
+
+func (q *Queries) GetArticlesPaginatedAfter(ctx context.Context, arg GetArticlesPaginatedAfterParams) ([]GetArticlesPaginatedAfterRow, error) {
+	rows, err := q.db.QueryContext(ctx, getArticlesPaginatedAfter,
+		arg.IsRead,
+		arg.UserID,
+		arg.ID,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetArticlesPaginatedAfterRow{}
+	for rows.Next() {
+		var i GetArticlesPaginatedAfterRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.FeedID,

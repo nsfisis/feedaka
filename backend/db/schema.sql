@@ -37,3 +37,5 @@ CREATE INDEX IF NOT EXISTS idx_articles_is_read ON articles(is_read);
 CREATE INDEX IF NOT EXISTS idx_articles_guid ON articles(guid);
 
 CREATE INDEX IF NOT EXISTS idx_feeds_user_id ON feeds(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_articles_feed_read_id ON articles(feed_id, is_read, id DESC);

@@ -311,6 +311,16 @@ func (r *queryResolver) Feeds(ctx context.Context) ([]*model.Feed, error) {
 		return nil, fmt.Errorf("failed to query feeds: %w", err)
 	}
 
+	// Fetch unread counts for all feeds
+	unreadCounts, err := r.Queries.GetFeedUnreadCounts(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query unread counts: %w", err)
+	}
+	countMap := make(map[int64]int64, len(unreadCounts))
+	for _, uc := range unreadCounts {
+		countMap[uc.FeedID] = uc.UnreadCount
+	}
+
 	var feeds []*model.Feed
 	for _, dbFeed := range dbFeeds {
 		feeds = append(feeds, &model.Feed{
@@ -319,6 +329,7 @@ func (r *queryResolver) Feeds(ctx context.Context) ([]*model.Feed, error) {
 			Title:        dbFeed.Title,
 			FetchedAt:    dbFeed.FetchedAt,
 			IsSubscribed: dbFeed.IsSubscribed == 1,
+			UnreadCount:  int32(countMap[dbFeed.ID]),
 		})
 	}
 
@@ -326,69 +337,13 @@ func (r *queryResolver) Feeds(ctx context.Context) ([]*model.Feed, error) {
 }
 
 // UnreadArticles is the resolver for the unreadArticles field.
-func (r *queryResolver) UnreadArticles(ctx context.Context) ([]*model.Article, error) {
-	userID, err := getUserIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := r.Queries.GetUnreadArticles(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query unread articles: %w", err)
-	}
-
-	var articles []*model.Article
-	for _, row := range rows {
-		articles = append(articles, &model.Article{
-			ID:     strconv.FormatInt(row.ID, 10),
-			FeedID: strconv.FormatInt(row.FeedID, 10),
-			GUID:   row.Guid,
-			Title:  row.Title,
-			URL:    row.Url,
-			IsRead: row.IsRead == 1,
-			Feed: &model.Feed{
-				ID:           strconv.FormatInt(row.FeedID2, 10),
-				URL:          row.FeedUrl,
-				Title:        row.FeedTitle,
-				IsSubscribed: row.FeedIsSubscribed == 1,
-			},
-		})
-	}
-
-	return articles, nil
+func (r *queryResolver) UnreadArticles(ctx context.Context, feedID *string, after *string, first *int32) (*model.ArticleConnection, error) {
+	return r.paginatedArticles(ctx, 0, feedID, after, first)
 }
 
 // ReadArticles is the resolver for the readArticles field.
-func (r *queryResolver) ReadArticles(ctx context.Context) ([]*model.Article, error) {
-	userID, err := getUserIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := r.Queries.GetReadArticles(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query read articles: %w", err)
-	}
-
-	var articles []*model.Article
-	for _, row := range rows {
-		articles = append(articles, &model.Article{
-			ID:     strconv.FormatInt(row.ID, 10),
-			FeedID: strconv.FormatInt(row.FeedID, 10),
-			GUID:   row.Guid,
-			Title:  row.Title,
-			URL:    row.Url,
-			IsRead: row.IsRead == 1,
-			Feed: &model.Feed{
-				ID:           strconv.FormatInt(row.FeedID2, 10),
-				URL:          row.FeedUrl,
-				Title:        row.FeedTitle,
-				IsSubscribed: row.FeedIsSubscribed == 1,
-			},
-		})
-	}
-
-	return articles, nil
+func (r *queryResolver) ReadArticles(ctx context.Context, feedID *string, after *string, first *int32) (*model.ArticleConnection, error) {
+	return r.paginatedArticles(ctx, 1, feedID, after, first)
 }
 
 // Feed is the resolver for the feed field.

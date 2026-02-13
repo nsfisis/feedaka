@@ -5,15 +5,27 @@ import type {
 } from "../graphql/generated/graphql";
 import { ArticleItem } from "./ArticleItem";
 
+type ArticleType =
+	| GetUnreadArticlesQuery["unreadArticles"]["articles"]
+	| GetReadArticlesQuery["readArticles"]["articles"];
+
 interface Props {
-	articles: NonNullable<
-		| GetUnreadArticlesQuery["unreadArticles"]
-		| GetReadArticlesQuery["readArticles"]
-	>;
+	articles: ArticleType;
 	isReadView?: boolean;
+	isSingleFeed?: boolean;
+	hasNextPage?: boolean;
+	loadingMore?: boolean;
+	onLoadMore?: () => void;
 }
 
-export function ArticleList({ articles, isReadView }: Props) {
+export function ArticleList({
+	articles,
+	isReadView,
+	isSingleFeed,
+	hasNextPage,
+	loadingMore,
+	onLoadMore,
+}: Props) {
 	const [hiddenArticleIds, setHiddenArticleIds] = useState<Set<string>>(
 		new Set(),
 	);
@@ -32,6 +44,25 @@ export function ArticleList({ articles, isReadView }: Props) {
 		return (
 			<div className="py-8 text-center">
 				<p className="text-sm text-stone-400">No articles found.</p>
+			</div>
+		);
+	}
+
+	if (isSingleFeed) {
+		return (
+			<div className="space-y-1">
+				{visibleArticles.map((article) => (
+					<ArticleItem
+						key={article.id}
+						article={article}
+						onReadChange={handleArticleReadChange}
+					/>
+				))}
+				<LoadMoreButton
+					hasNextPage={hasNextPage}
+					loadingMore={loadingMore}
+					onLoadMore={onLoadMore}
+				/>
 			</div>
 		);
 	}
@@ -77,6 +108,36 @@ export function ArticleList({ articles, isReadView }: Props) {
 					</div>
 				</div>
 			))}
+			<LoadMoreButton
+				hasNextPage={hasNextPage}
+				loadingMore={loadingMore}
+				onLoadMore={onLoadMore}
+			/>
+		</div>
+	);
+}
+
+function LoadMoreButton({
+	hasNextPage,
+	loadingMore,
+	onLoadMore,
+}: {
+	hasNextPage?: boolean;
+	loadingMore?: boolean;
+	onLoadMore?: () => void;
+}) {
+	if (!hasNextPage || !onLoadMore) return null;
+
+	return (
+		<div className="pt-4 text-center">
+			<button
+				type="button"
+				onClick={onLoadMore}
+				disabled={loadingMore}
+				className="rounded-lg bg-stone-100 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-200 disabled:opacity-50"
+			>
+				{loadingMore ? "Loading..." : "Load more"}
+			</button>
 		</div>
 	);
 }

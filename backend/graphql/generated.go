@@ -56,6 +56,11 @@ type ComplexityRoot struct {
 		URL    func(childComplexity int) int
 	}
 
+	ArticleConnection struct {
+		Articles func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
 	AuthPayload struct {
 		User func(childComplexity int) int
 	}
@@ -67,6 +72,7 @@ type ComplexityRoot struct {
 		IsSubscribed func(childComplexity int) int
 		Title        func(childComplexity int) int
 		URL          func(childComplexity int) int
+		UnreadCount  func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -80,13 +86,18 @@ type ComplexityRoot struct {
 		UnsubscribeFeed   func(childComplexity int, id string) int
 	}
 
+	PageInfo struct {
+		EndCursor   func(childComplexity int) int
+		HasNextPage func(childComplexity int) int
+	}
+
 	Query struct {
 		Article        func(childComplexity int, id string) int
 		CurrentUser    func(childComplexity int) int
 		Feed           func(childComplexity int, id string) int
 		Feeds          func(childComplexity int) int
-		ReadArticles   func(childComplexity int) int
-		UnreadArticles func(childComplexity int) int
+		ReadArticles   func(childComplexity int, feedID *string, after *string, first *int32) int
+		UnreadArticles func(childComplexity int, feedID *string, after *string, first *int32) int
 	}
 
 	User struct {
@@ -107,8 +118,8 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	Feeds(ctx context.Context) ([]*model.Feed, error)
-	UnreadArticles(ctx context.Context) ([]*model.Article, error)
-	ReadArticles(ctx context.Context) ([]*model.Article, error)
+	UnreadArticles(ctx context.Context, feedID *string, after *string, first *int32) (*model.ArticleConnection, error)
+	ReadArticles(ctx context.Context, feedID *string, after *string, first *int32) (*model.ArticleConnection, error)
 	Feed(ctx context.Context, id string) (*model.Feed, error)
 	Article(ctx context.Context, id string) (*model.Article, error)
 	CurrentUser(ctx context.Context) (*model.User, error)
@@ -182,6 +193,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Article.URL(childComplexity), true
 
+	case "ArticleConnection.articles":
+		if e.complexity.ArticleConnection.Articles == nil {
+			break
+		}
+
+		return e.complexity.ArticleConnection.Articles(childComplexity), true
+
+	case "ArticleConnection.pageInfo":
+		if e.complexity.ArticleConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.ArticleConnection.PageInfo(childComplexity), true
+
 	case "AuthPayload.user":
 		if e.complexity.AuthPayload.User == nil {
 			break
@@ -230,6 +255,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Feed.URL(childComplexity), true
+
+	case "Feed.unreadCount":
+		if e.complexity.Feed.UnreadCount == nil {
+			break
+		}
+
+		return e.complexity.Feed.UnreadCount(childComplexity), true
 
 	case "Mutation.addFeed":
 		if e.complexity.Mutation.AddFeed == nil {
@@ -322,6 +354,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UnsubscribeFeed(childComplexity, args["id"].(string)), true
 
+	case "PageInfo.endCursor":
+		if e.complexity.PageInfo.EndCursor == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.EndCursor(childComplexity), true
+
+	case "PageInfo.hasNextPage":
+		if e.complexity.PageInfo.HasNextPage == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasNextPage(childComplexity), true
+
 	case "Query.article":
 		if e.complexity.Query.Article == nil {
 			break
@@ -365,14 +411,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		return e.complexity.Query.ReadArticles(childComplexity), true
+		args, err := ec.field_Query_readArticles_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ReadArticles(childComplexity, args["feedId"].(*string), args["after"].(*string), args["first"].(*int32)), true
 
 	case "Query.unreadArticles":
 		if e.complexity.Query.UnreadArticles == nil {
 			break
 		}
 
-		return e.complexity.Query.UnreadArticles(childComplexity), true
+		args, err := ec.field_Query_unreadArticles_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UnreadArticles(childComplexity, args["feedId"].(*string), args["after"].(*string), args["first"].(*int32)), true
 
 	case "User.id":
 		if e.complexity.User.ID == nil {
@@ -524,6 +580,11 @@ type Feed {
 	isSubscribed: Boolean!
 
 	"""
+	Number of unread articles in this feed
+	"""
+	unreadCount: Int!
+
+	"""
 	Articles belonging to this feed
 	"""
 	articles: [Article!]!
@@ -585,6 +646,36 @@ type User {
 }
 
 """
+Pagination information for cursor-based pagination
+"""
+type PageInfo {
+	"""
+	Whether there are more items after the last item in this page
+	"""
+	hasNextPage: Boolean!
+
+	"""
+	Cursor of the last item in this page
+	"""
+	endCursor: ID
+}
+
+"""
+A paginated list of articles
+"""
+type ArticleConnection {
+	"""
+	The list of articles
+	"""
+	articles: [Article!]!
+
+	"""
+	Pagination information
+	"""
+	pageInfo: PageInfo!
+}
+
+"""
 Authentication payload returned from login mutation
 """
 type AuthPayload {
@@ -604,14 +695,14 @@ type Query {
 	feeds: [Feed!]!
 
 	"""
-	Get all unread articles across all feeds
+	Get unread articles with optional feed filter and cursor-based pagination
 	"""
-	unreadArticles: [Article!]!
+	unreadArticles(feedId: ID, after: ID, first: Int): ArticleConnection!
 
 	"""
-	Get all read articles across all feeds
+	Get read articles with optional feed filter and cursor-based pagination
 	"""
-	readArticles: [Article!]!
+	readArticles(feedId: ID, after: ID, first: Int): ArticleConnection!
 
 	"""
 	Get a specific feed by ID
@@ -981,6 +1072,154 @@ func (ec *executionContext) field_Query_feed_argsID(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_readArticles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_readArticles_argsFeedID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["feedId"] = arg0
+	arg1, err := ec.field_Query_readArticles_argsAfter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	arg2, err := ec.field_Query_readArticles_argsFirst(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Query_readArticles_argsFeedID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	if _, ok := rawArgs["feedId"]; !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("feedId"))
+	if tmp, ok := rawArgs["feedId"]; ok {
+		return ec.unmarshalOID2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_readArticles_argsAfter(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	if _, ok := rawArgs["after"]; !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+	if tmp, ok := rawArgs["after"]; ok {
+		return ec.unmarshalOID2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_readArticles_argsFirst(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int32, error) {
+	if _, ok := rawArgs["first"]; !ok {
+		var zeroVal *int32
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+	if tmp, ok := rawArgs["first"]; ok {
+		return ec.unmarshalOInt2ᚖint32(ctx, tmp)
+	}
+
+	var zeroVal *int32
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_unreadArticles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_unreadArticles_argsFeedID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["feedId"] = arg0
+	arg1, err := ec.field_Query_unreadArticles_argsAfter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg1
+	arg2, err := ec.field_Query_unreadArticles_argsFirst(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Query_unreadArticles_argsFeedID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	if _, ok := rawArgs["feedId"]; !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("feedId"))
+	if tmp, ok := rawArgs["feedId"]; ok {
+		return ec.unmarshalOID2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_unreadArticles_argsAfter(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	if _, ok := rawArgs["after"]; !ok {
+		var zeroVal *string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+	if tmp, ok := rawArgs["after"]; ok {
+		return ec.unmarshalOID2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_unreadArticles_argsFirst(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int32, error) {
+	if _, ok := rawArgs["first"]; !ok {
+		var zeroVal *int32
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+	if tmp, ok := rawArgs["first"]; ok {
+		return ec.unmarshalOInt2ᚖint32(ctx, tmp)
+	}
+
+	var zeroVal *int32
 	return zeroVal, nil
 }
 
@@ -1417,10 +1656,122 @@ func (ec *executionContext) fieldContext_Article_feed(_ context.Context, field g
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
 			case "isSubscribed":
 				return ec.fieldContext_Feed_isSubscribed(ctx, field)
+			case "unreadCount":
+				return ec.fieldContext_Feed_unreadCount(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Feed", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ArticleConnection_articles(ctx context.Context, field graphql.CollectedField, obj *model.ArticleConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ArticleConnection_articles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Articles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Article)
+	fc.Result = res
+	return ec.marshalNArticle2ᚕᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐArticleᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ArticleConnection_articles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ArticleConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Article_id(ctx, field)
+			case "feedId":
+				return ec.fieldContext_Article_feedId(ctx, field)
+			case "guid":
+				return ec.fieldContext_Article_guid(ctx, field)
+			case "title":
+				return ec.fieldContext_Article_title(ctx, field)
+			case "url":
+				return ec.fieldContext_Article_url(ctx, field)
+			case "isRead":
+				return ec.fieldContext_Article_isRead(ctx, field)
+			case "feed":
+				return ec.fieldContext_Article_feed(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Article", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ArticleConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.ArticleConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ArticleConnection_pageInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ArticleConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ArticleConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
 		},
 	}
 	return fc, nil
@@ -1696,6 +2047,50 @@ func (ec *executionContext) fieldContext_Feed_isSubscribed(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Feed_unreadCount(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Feed_unreadCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UnreadCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int32)
+	fc.Result = res
+	return ec.marshalNInt2int32(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Feed_unreadCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Feed",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Feed_articles(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Feed_articles(ctx, field)
 	if err != nil {
@@ -1805,6 +2200,8 @@ func (ec *executionContext) fieldContext_Mutation_addFeed(ctx context.Context, f
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
 			case "isSubscribed":
 				return ec.fieldContext_Feed_isSubscribed(ctx, field)
+			case "unreadCount":
+				return ec.fieldContext_Feed_unreadCount(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -2071,6 +2468,8 @@ func (ec *executionContext) fieldContext_Mutation_markFeedRead(ctx context.Conte
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
 			case "isSubscribed":
 				return ec.fieldContext_Feed_isSubscribed(ctx, field)
+			case "unreadCount":
+				return ec.fieldContext_Feed_unreadCount(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -2140,6 +2539,8 @@ func (ec *executionContext) fieldContext_Mutation_markFeedUnread(ctx context.Con
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
 			case "isSubscribed":
 				return ec.fieldContext_Feed_isSubscribed(ctx, field)
+			case "unreadCount":
+				return ec.fieldContext_Feed_unreadCount(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -2263,6 +2664,91 @@ func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.HasNextPage, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PageInfo_endCursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndCursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_feeds(ctx, field)
 	if err != nil {
@@ -2312,6 +2798,8 @@ func (ec *executionContext) fieldContext_Query_feeds(_ context.Context, field gr
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
 			case "isSubscribed":
 				return ec.fieldContext_Feed_isSubscribed(ctx, field)
+			case "unreadCount":
+				return ec.fieldContext_Feed_unreadCount(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -2335,7 +2823,7 @@ func (ec *executionContext) _Query_unreadArticles(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().UnreadArticles(rctx)
+		return ec.resolvers.Query().UnreadArticles(rctx, fc.Args["feedId"].(*string), fc.Args["after"].(*string), fc.Args["first"].(*int32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2347,12 +2835,12 @@ func (ec *executionContext) _Query_unreadArticles(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Article)
+	res := resTmp.(*model.ArticleConnection)
 	fc.Result = res
-	return ec.marshalNArticle2ᚕᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐArticleᚄ(ctx, field.Selections, res)
+	return ec.marshalNArticleConnection2ᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐArticleConnection(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_unreadArticles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_unreadArticles(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -2360,23 +2848,24 @@ func (ec *executionContext) fieldContext_Query_unreadArticles(_ context.Context,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Article_id(ctx, field)
-			case "feedId":
-				return ec.fieldContext_Article_feedId(ctx, field)
-			case "guid":
-				return ec.fieldContext_Article_guid(ctx, field)
-			case "title":
-				return ec.fieldContext_Article_title(ctx, field)
-			case "url":
-				return ec.fieldContext_Article_url(ctx, field)
-			case "isRead":
-				return ec.fieldContext_Article_isRead(ctx, field)
-			case "feed":
-				return ec.fieldContext_Article_feed(ctx, field)
+			case "articles":
+				return ec.fieldContext_ArticleConnection_articles(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_ArticleConnection_pageInfo(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Article", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ArticleConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_unreadArticles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -2395,7 +2884,7 @@ func (ec *executionContext) _Query_readArticles(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().ReadArticles(rctx)
+		return ec.resolvers.Query().ReadArticles(rctx, fc.Args["feedId"].(*string), fc.Args["after"].(*string), fc.Args["first"].(*int32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2407,12 +2896,12 @@ func (ec *executionContext) _Query_readArticles(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Article)
+	res := resTmp.(*model.ArticleConnection)
 	fc.Result = res
-	return ec.marshalNArticle2ᚕᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐArticleᚄ(ctx, field.Selections, res)
+	return ec.marshalNArticleConnection2ᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐArticleConnection(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_readArticles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_readArticles(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -2420,23 +2909,24 @@ func (ec *executionContext) fieldContext_Query_readArticles(_ context.Context, f
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Article_id(ctx, field)
-			case "feedId":
-				return ec.fieldContext_Article_feedId(ctx, field)
-			case "guid":
-				return ec.fieldContext_Article_guid(ctx, field)
-			case "title":
-				return ec.fieldContext_Article_title(ctx, field)
-			case "url":
-				return ec.fieldContext_Article_url(ctx, field)
-			case "isRead":
-				return ec.fieldContext_Article_isRead(ctx, field)
-			case "feed":
-				return ec.fieldContext_Article_feed(ctx, field)
+			case "articles":
+				return ec.fieldContext_ArticleConnection_articles(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_ArticleConnection_pageInfo(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Article", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ArticleConnection", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_readArticles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -2487,6 +2977,8 @@ func (ec *executionContext) fieldContext_Query_feed(ctx context.Context, field g
 				return ec.fieldContext_Feed_fetchedAt(ctx, field)
 			case "isSubscribed":
 				return ec.fieldContext_Feed_isSubscribed(ctx, field)
+			case "unreadCount":
+				return ec.fieldContext_Feed_unreadCount(ctx, field)
 			case "articles":
 				return ec.fieldContext_Feed_articles(ctx, field)
 			}
@@ -4869,6 +5361,50 @@ func (ec *executionContext) _Article(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var articleConnectionImplementors = []string{"ArticleConnection"}
+
+func (ec *executionContext) _ArticleConnection(ctx context.Context, sel ast.SelectionSet, obj *model.ArticleConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, articleConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ArticleConnection")
+		case "articles":
+			out.Values[i] = ec._ArticleConnection_articles(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._ArticleConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var authPayloadImplementors = []string{"AuthPayload"}
 
 func (ec *executionContext) _AuthPayload(ctx context.Context, sel ast.SelectionSet, obj *model.AuthPayload) graphql.Marshaler {
@@ -4941,6 +5477,11 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "isSubscribed":
 			out.Values[i] = ec._Feed_isSubscribed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "unreadCount":
+			out.Values[i] = ec._Feed_unreadCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5047,6 +5588,47 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var pageInfoImplementors = []string{"PageInfo"}
+
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *model.PageInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PageInfo")
+		case "hasNextPage":
+			out.Values[i] = ec._PageInfo_hasNextPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endCursor":
+			out.Values[i] = ec._PageInfo_endCursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5680,6 +6262,20 @@ func (ec *executionContext) marshalNArticle2ᚖundefᚗninjaᚋxᚋfeedakaᚋgra
 	return ec._Article(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNArticleConnection2undefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐArticleConnection(ctx context.Context, sel ast.SelectionSet, v model.ArticleConnection) graphql.Marshaler {
+	return ec._ArticleConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNArticleConnection2ᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐArticleConnection(ctx context.Context, sel ast.SelectionSet, v *model.ArticleConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ArticleConnection(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNAuthPayload2undefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐAuthPayload(ctx context.Context, sel ast.SelectionSet, v model.AuthPayload) graphql.Marshaler {
 	return ec._AuthPayload(ctx, sel, &v)
 }
@@ -5798,6 +6394,32 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v any) (int32, error) {
+	res, err := graphql.UnmarshalInt32(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.SelectionSet, v int32) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalInt32(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNPageInfo2ᚖundefᚗninjaᚋxᚋfeedakaᚋgraphqlᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PageInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -6121,6 +6743,42 @@ func (ec *executionContext) marshalOFeed2ᚖundefᚗninjaᚋxᚋfeedakaᚋgraphq
 		return graphql.Null
 	}
 	return ec._Feed(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt32(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint32(ctx context.Context, sel ast.SelectionSet, v *int32) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalInt32(*v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

@@ -30,6 +30,11 @@ type Feed {
 	isSubscribed: Boolean!
 
 	"""
+	Number of unread articles in this feed
+	"""
+	unreadCount: Int!
+
+	"""
 	Articles belonging to this feed
 	"""
 	articles: [Article!]!
@@ -91,6 +96,36 @@ type User {
 }
 
 """
+Pagination information for cursor-based pagination
+"""
+type PageInfo {
+	"""
+	Whether there are more items after the last item in this page
+	"""
+	hasNextPage: Boolean!
+
+	"""
+	Cursor of the last item in this page
+	"""
+	endCursor: ID
+}
+
+"""
+A paginated list of articles
+"""
+type ArticleConnection {
+	"""
+	The list of articles
+	"""
+	articles: [Article!]!
+
+	"""
+	Pagination information
+	"""
+	pageInfo: PageInfo!
+}
+
+"""
 Authentication payload returned from login mutation
 """
 type AuthPayload {
@@ -110,14 +145,14 @@ type Query {
 	feeds: [Feed!]!
 
 	"""
-	Get all unread articles across all feeds
+	Get unread articles with optional feed filter and cursor-based pagination
 	"""
-	unreadArticles: [Article!]!
+	unreadArticles(feedId: ID, after: ID, first: Int): ArticleConnection!
 
 	"""
-	Get all read articles across all feeds
+	Get read articles with optional feed filter and cursor-based pagination
 	"""
-	readArticles: [Article!]!
+	readArticles(feedId: ID, after: ID, first: Int): ArticleConnection!
 
 	"""
 	Get a specific feed by ID
