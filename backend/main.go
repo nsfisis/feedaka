@@ -13,7 +13,7 @@ import (
 )
 
 //go:generate go tool sqlc generate
-//go:generate go tool gqlgen generate
+//go:generate go tool oapi-codegen -package api -generate types,echo-server,strict-server -o api/generated.go ../openapi/openapi.yaml
 
 var (
 	//go:embed public/*

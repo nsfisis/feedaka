@@ -11,22 +11,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/handler/extension"
-	"github.com/99designs/gqlgen/graphql/handler/lru"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/hashicorp/go-multierror"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/vektah/gqlparser/v2/ast"
 
+	"undef.ninja/x/feedaka/api"
 	"undef.ninja/x/feedaka/auth"
 	"undef.ninja/x/feedaka/config"
 	"undef.ninja/x/feedaka/db"
 	"undef.ninja/x/feedaka/feed"
-	"undef.ninja/x/feedaka/graphql"
-	"undef.ninja/x/feedaka/graphql/resolver"
 )
 
 func fetchOneFeed(feedID int64, url string, ctx context.Context, queries *db.Queries) error {
@@ -113,41 +107,17 @@ func RunServe(database *sql.DB, cfg *config.Config, publicFS embed.FS) {
 		Filesystem: http.FS(publicFS),
 	}))
 
-	// Setup GraphQL server
-	srv := handler.New(graphql.NewExecutableSchema(graphql.Config{Resolvers: &resolver.Resolver{
+	handler := &api.Handler{
 		DB:            database,
 		Queries:       queries,
 		SessionConfig: sessionConfig,
-	}}))
+	}
 
-	srv.AddTransport(transport.Options{})
-	srv.AddTransport(transport.GET{})
-	srv.AddTransport(transport.POST{})
+	strictHandler := api.NewStrictHandler(handler, nil)
 
-	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
-
-	srv.Use(extension.Introspection{})
-	srv.Use(extension.AutomaticPersistedQuery{
-		Cache: lru.New[string](100),
-	})
-
-	// GraphQL endpoints with authentication middleware
-	graphqlGroup := e.Group("/graphql")
-	graphqlGroup.Use(auth.SessionAuthMiddleware(sessionConfig))
-	graphqlGroup.POST("", func(c echo.Context) error {
-		// Add Echo context to GraphQL context
-		ctx := context.WithValue(c.Request().Context(), "echo", c)
-		req := c.Request().WithContext(ctx)
-		srv.ServeHTTP(c.Response(), req)
-		return nil
-	})
-	graphqlGroup.GET("", func(c echo.Context) error {
-		// Add Echo context to GraphQL context
-		ctx := context.WithValue(c.Request().Context(), "echo", c)
-		req := c.Request().WithContext(ctx)
-		srv.ServeHTTP(c.Response(), req)
-		return nil
-	})
+	// Register REST API routes with auth middleware
+	apiGroup := e.Group("", auth.SessionAuthMiddleware(sessionConfig), echoContextMiddleware())
+	api.RegisterHandlers(apiGroup, strictHandler)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -182,4 +152,16 @@ func RunServe(database *sql.DB, cfg *config.Config, publicFS embed.FS) {
 		log.Printf("Server error: %v\n", err)
 	}
 	log.Println("Server stopped")
+}
+
+// echoContextMiddleware injects echo.Context into request context
+// so strict server handlers can access it (needed for session operations)
+func echoContextMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ctx := api.WithEchoContext(c.Request().Context(), c)
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c)
+		}
+	}
 }

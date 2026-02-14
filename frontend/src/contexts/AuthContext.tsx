@@ -1,10 +1,12 @@
-import { createContext, type ReactNode, useContext } from "react";
-import { useMutation, useQuery } from "urql";
 import {
-	GetCurrentUserDocument,
-	LoginDocument,
-	LogoutDocument,
-} from "../graphql/generated/graphql";
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useEffect,
+	useState,
+} from "react";
+import { api } from "../services/api-client";
 
 type LoginResult = { success: true } | { success: false; error: string };
 
@@ -17,56 +19,43 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const urqlContextUser = { additionalTypenames: ["User"] };
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-	const [, executeLogin] = useMutation(LoginDocument);
-	const [, executeLogout] = useMutation(LogoutDocument);
-	const [currentUserResult, reexecuteGetCurrentUser] = useQuery({
-		query: GetCurrentUserDocument,
-		context: urqlContextUser,
-	});
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 
-	const isLoggedIn = !!currentUserResult.data?.currentUser;
-	const isLoading = currentUserResult.fetching || currentUserResult.stale;
+	const checkAuth = useCallback(async () => {
+		const { data } = await api.GET("/api/auth/me");
+		setIsLoggedIn(!!data);
+		setIsLoading(false);
+	}, []);
+
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
 
 	const login = async (
 		username: string,
 		password: string,
 	): Promise<LoginResult> => {
-		try {
-			const result = await executeLogin(
-				{ username, password },
-				urqlContextUser,
-			);
+		const { data, error } = await api.POST("/api/auth/login", {
+			body: { username, password },
+		});
 
-			if (result.error) {
-				const errorMessage =
-					result.error.graphQLErrors[0]?.message || result.error.message;
-				return { success: false, error: errorMessage };
-			}
-
-			if (result.data?.login?.user) {
-				reexecuteGetCurrentUser({ requestPolicy: "network-only" });
-				return { success: true };
-			}
-
-			const errorMessage = "Invalid username or password";
-			return { success: false, error: errorMessage };
-		} catch (error) {
-			const errorMessage =
-				error instanceof Error ? error.message : "An unknown error occurred";
-			console.error("Login failed:", error);
-			return { success: false, error: errorMessage };
+		if (error) {
+			return { success: false, error: error.message };
 		}
+
+		if (data?.user) {
+			setIsLoggedIn(true);
+			return { success: true };
+		}
+
+		return { success: false, error: "Invalid username or password" };
 	};
 
 	const logout = async () => {
-		try {
-			await executeLogout({}, urqlContextUser);
-		} catch (error) {
-			console.error("Logout failed:", error);
-		}
+		await api.POST("/api/auth/logout");
+		setIsLoggedIn(false);
 	};
 
 	return (

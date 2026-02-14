@@ -1,12 +1,13 @@
-import { useQuery } from "urql";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { GetFeedsDocument } from "../graphql/generated/graphql";
+import type { components } from "../api/generated";
+import { api } from "../services/api-client";
+
+type Feed = components["schemas"]["Feed"];
 
 interface Props {
 	basePath: string;
 }
-
-const urqlContextFeed = { additionalTypenames: ["Feed", "Article"] };
 
 export function FeedSidebar({ basePath }: Props) {
 	const search = useSearch();
@@ -14,10 +15,21 @@ export function FeedSidebar({ basePath }: Props) {
 	const params = new URLSearchParams(search);
 	const selectedFeedId = params.get("feed");
 
-	const [{ data, fetching }] = useQuery({
-		query: GetFeedsDocument,
-		context: urqlContextFeed,
-	});
+	const [feeds, setFeeds] = useState<Feed[]>([]);
+	const [fetching, setFetching] = useState(true);
+
+	const fetchFeeds = useCallback(async () => {
+		setFetching(true);
+		const { data } = await api.GET("/api/feeds");
+		if (data) {
+			setFeeds(data);
+		}
+		setFetching(false);
+	}, []);
+
+	useEffect(() => {
+		fetchFeeds();
+	}, [fetchFeeds]);
 
 	const handleSelect = (feedId: string | null) => {
 		if (feedId) {
@@ -49,7 +61,7 @@ export function FeedSidebar({ basePath }: Props) {
 				{fetching && (
 					<li className="px-3 py-1.5 text-xs text-stone-400">Loading...</li>
 				)}
-				{data?.feeds.map((feed) => (
+				{feeds.map((feed) => (
 					<li key={feed.id}>
 						<button
 							type="button"

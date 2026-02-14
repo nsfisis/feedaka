@@ -1,17 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { useClient } from "urql";
-import type {
-	GetReadArticlesQuery,
-	GetUnreadArticlesQuery,
-} from "../graphql/generated/graphql";
-import {
-	GetReadArticlesDocument,
-	GetUnreadArticlesDocument,
-} from "../graphql/generated/graphql";
+import type { components } from "../api/generated";
+import { api } from "../services/api-client";
 
-type ArticleType =
-	| GetUnreadArticlesQuery["unreadArticles"]["articles"][number]
-	| GetReadArticlesQuery["readArticles"]["articles"][number];
+export type ArticleType = components["schemas"]["Article"];
 
 interface UsePaginatedArticlesOptions {
 	isReadView: boolean;
@@ -31,7 +22,6 @@ export function usePaginatedArticles({
 	isReadView,
 	feedId,
 }: UsePaginatedArticlesOptions): UsePaginatedArticlesResult {
-	const client = useClient();
 	const [articles, setArticles] = useState<ArticleType[]>([]);
 	const [hasNextPage, setHasNextPage] = useState(false);
 	const [endCursor, setEndCursor] = useState<string | null>(null);
@@ -41,49 +31,33 @@ export function usePaginatedArticles({
 
 	const fetchArticles = useCallback(
 		async (after: string | null, append: boolean) => {
-			const variables: Record<string, unknown> = {};
-			if (feedId) variables.feedId = feedId;
-			if (after) variables.after = after;
+			const query: { feedId?: string; after?: string } = {};
+			if (feedId) query.feedId = feedId;
+			if (after) query.after = after;
 
-			let connection: {
-				articles: ArticleType[];
-				pageInfo: { hasNextPage: boolean; endCursor?: string | null };
-			} | null = null;
+			const endpoint = isReadView
+				? "/api/articles/read"
+				: "/api/articles/unread";
 
-			if (isReadView) {
-				const result = await client
-					.query(GetReadArticlesDocument, variables, {
-						additionalTypenames: ["Article"],
-					})
-					.toPromise();
-				if (result.error) {
-					setError(new Error(result.error.message));
-					return;
-				}
-				connection = result.data?.readArticles ?? null;
-			} else {
-				const result = await client
-					.query(GetUnreadArticlesDocument, variables, {
-						additionalTypenames: ["Article"],
-					})
-					.toPromise();
-				if (result.error) {
-					setError(new Error(result.error.message));
-					return;
-				}
-				connection = result.data?.unreadArticles ?? null;
+			const { data } = await api.GET(endpoint, {
+				params: { query },
+			});
+
+			if (!data) {
+				setError(new Error("Failed to fetch articles"));
+				return;
 			}
 
-			if (connection) {
+			if (data) {
 				setArticles((prev) =>
-					append ? [...prev, ...connection.articles] : connection.articles,
+					append ? [...prev, ...data.articles] : data.articles,
 				);
-				setHasNextPage(connection.pageInfo.hasNextPage);
-				setEndCursor(connection.pageInfo.endCursor ?? null);
+				setHasNextPage(data.pageInfo.hasNextPage);
+				setEndCursor(data.pageInfo.endCursor ?? null);
 				setError(null);
 			}
 		},
-		[client, isReadView, feedId],
+		[isReadView, feedId],
 	);
 
 	// Reset and fetch on feedId or view change

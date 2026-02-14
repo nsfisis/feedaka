@@ -2,15 +2,16 @@
 
 ## Project Overview
 
-Feedaka is a personal RSS/Atom feed reader. Monorepo with a Go backend and React/TypeScript frontend, communicating via GraphQL.
+Feedaka is a personal RSS/Atom feed reader. Monorepo with a Go backend and React/TypeScript frontend, communicating via REST API.
 
 ## Tech Stack
 
-- **Backend:** Go 1.24+, Echo v4, gqlgen (GraphQL), SQLite with sqlc
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, urql (GraphQL client), wouter (routing)
+- **Backend:** Go 1.24+, Echo v4, oapi-codegen (OpenAPI server stubs), SQLite with sqlc
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, openapi-fetch (REST client), wouter (routing)
+- **API Schema:** TypeSpec → OpenAPI 3.x → oapi-codegen (Go) + openapi-typescript (TS)
 - **Task Runner:** [just](https://github.com/casey/just) (justfiles at root and `backend/`)
 - **Linting/Formatting:** Biome (frontend), go fmt (backend)
-- **Code Generation:** gqlgen + sqlc (backend), graphql-codegen (frontend)
+- **Code Generation:** TypeSpec + oapi-codegen + openapi-typescript + sqlc
 
 ## Common Commands
 
@@ -21,7 +22,7 @@ just build       # Build both frontend and backend
 just dev         # Start dev servers (frontend + backend)
 just fmt         # Format all code
 just check       # Type-check all code
-just generate    # Regenerate GraphQL and DB code
+just generate    # Regenerate API and DB code (TypeSpec → OpenAPI → Go/TS)
 ```
 
 ### Frontend (run from `frontend/`)
@@ -31,7 +32,7 @@ npm run build    # Build with TypeScript + Vite
 npm run dev      # Start Vite dev server
 npm run check    # Run Biome checks
 npm run fix      # Auto-fix with Biome
-npm run generate # Generate GraphQL types
+npm run generate # Generate TypeScript types from OpenAPI
 ```
 
 ### Backend (run from `backend/`)
@@ -40,40 +41,45 @@ npm run generate # Generate GraphQL types
 just build       # Compile Go binary
 just fmt         # go fmt
 just check       # Verify build compiles
-just generate    # Run go generate (gqlgen + sqlc)
+just generate    # Run go generate (oapi-codegen + sqlc)
 ```
 
 ## Code Generation
 
 Generated files — do not edit by hand:
 
-- `backend/graphql/generated.go` — gqlgen output
-- `backend/graphql/model/generated.go` — gqlgen models
+- `openapi/openapi.yaml` — TypeSpec output (OpenAPI 3.x)
+- `backend/api/generated.go` — oapi-codegen output (Echo server stubs + models)
 - `backend/db/users.sql.go`, `backend/db/articles.sql.go`, `backend/db/feeds.sql.go` — sqlc output
-- `frontend/src/graphql/generated/` — graphql-codegen output
+- `frontend/src/api/generated.d.ts` — openapi-typescript output
 
 Regenerate with `just generate` from the repo root.
 
 ## Project Structure
 
 ```
-graphql/schema.graphql    # Shared GraphQL schema (source of truth)
+typespec/
+  main.tsp                # API schema definition (source of truth)
+  tspconfig.yaml          # TypeSpec compiler config
+openapi/
+  openapi.yaml            # Generated OpenAPI 3.x spec
 backend/
   cmd/                    # CLI commands (serve, migrate, create-user)
+  api/                    # REST API handlers + generated server stubs
   db/                     # Database layer, migrations, sqlc queries
-  graphql/resolver/       # GraphQL resolvers (edit these for backend logic)
   feed/                   # Feed fetching logic
   auth/                   # Authentication
   config/                 # Configuration
-  gqlgen.yml              # gqlgen config
+  context/                # Context helpers
   sqlc.yaml               # sqlc config
 frontend/
   src/
+    api/                  # Generated TypeScript types
     components/           # React components
     pages/                # Page components
     contexts/             # React contexts (auth)
-    graphql/              # GraphQL queries/mutations
-    services/             # GraphQL client setup
+    hooks/                # Custom hooks
+    services/             # API client setup
   biome.json              # Biome config
 ```
 

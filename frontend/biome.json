@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!src/graphql/generated/*.ts"],
+		"includes": ["**", "!src/api/generated.d.ts"],
 		"ignoreUnknown": true
 	},
 	"css": {

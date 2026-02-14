@@ -1,31 +1,31 @@
 import { faPlus, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
-import { useMutation } from "urql";
-import { AddFeedDocument } from "../graphql/generated/graphql";
+import { api } from "../services/api-client";
 
 interface Props {
 	onFeedAdded?: () => void;
 }
 
-const urqlContextFeed = { additionalTypenames: ["Feed"] };
-
 export function AddFeedForm({ onFeedAdded }: Props) {
 	const [url, setUrl] = useState("");
 	const [error, setError] = useState<string | null>(null);
-	const [{ fetching }, addFeed] = useMutation(AddFeedDocument);
+	const [fetching, setFetching] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!url.trim()) return;
 
 		setError(null);
+		setFetching(true);
 
 		try {
-			const result = await addFeed({ url: url.trim() }, urqlContextFeed);
-			if (result.error) {
-				setError(result.error.message);
-			} else if (result.data) {
+			const { data, error: fetchError } = await api.POST("/api/feeds", {
+				body: { url: url.trim() },
+			});
+			if (fetchError) {
+				setError(fetchError.message);
+			} else if (data) {
 				setUrl("");
 				onFeedAdded?.();
 			}
@@ -33,6 +33,8 @@ export function AddFeedForm({ onFeedAdded }: Props) {
 			setError(
 				error instanceof Error ? error.message : "Failed to subscribe to feed",
 			);
+		} finally {
+			setFetching(false);
 		}
 	};
 

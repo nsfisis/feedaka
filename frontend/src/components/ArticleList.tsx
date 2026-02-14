@@ -1,16 +1,11 @@
 import { useState } from "react";
-import type {
-	GetReadArticlesQuery,
-	GetUnreadArticlesQuery,
-} from "../graphql/generated/graphql";
+import type { components } from "../api/generated";
 import { ArticleItem } from "./ArticleItem";
 
-type ArticleType =
-	| GetUnreadArticlesQuery["unreadArticles"]["articles"]
-	| GetReadArticlesQuery["readArticles"]["articles"];
+type Article = components["schemas"]["Article"];
 
 interface Props {
-	articles: ArticleType;
+	articles: Article[];
 	isReadView?: boolean;
 	isSingleFeed?: boolean;
 	hasNextPage?: boolean;
@@ -82,7 +77,7 @@ export function ArticleList({
 		},
 		{} as Record<
 			string,
-			{ feed: { id: string; title: string }; articles: typeof articles }
+			{ feed: { id: string; title: string }; articles: Article[] }
 		>,
 	);
 

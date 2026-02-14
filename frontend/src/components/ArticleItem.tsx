@@ -1,30 +1,16 @@
 import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useMutation } from "urql";
-import type {
-	GetReadArticlesQuery,
-	GetUnreadArticlesQuery,
-} from "../graphql/generated/graphql";
-import {
-	MarkArticleReadDocument,
-	MarkArticleUnreadDocument,
-} from "../graphql/generated/graphql";
+import type { components } from "../api/generated";
+import { api } from "../services/api-client";
 
-type Article =
-	| GetUnreadArticlesQuery["unreadArticles"]["articles"][number]
-	| GetReadArticlesQuery["readArticles"]["articles"][number];
+type Article = components["schemas"]["Article"];
 
 interface Props {
 	article: Article;
 	onReadChange?: (articleId: string, isRead: boolean) => void;
 }
 
-const urqlContextArticle = { additionalTypenames: ["Article"] };
-
 export function ArticleItem({ article, onReadChange }: Props) {
-	const [, markArticleRead] = useMutation(MarkArticleReadDocument);
-	const [, markArticleUnread] = useMutation(MarkArticleUnreadDocument);
-
 	const handleToggleRead = async (
 		articleId: string,
 		isCurrentlyRead: boolean,
@@ -33,18 +19,23 @@ export function ArticleItem({ article, onReadChange }: Props) {
 		onReadChange?.(articleId, newReadState);
 
 		if (isCurrentlyRead) {
-			await markArticleUnread({ id: articleId }, urqlContextArticle);
+			await api.POST("/api/articles/{articleId}/unread", {
+				params: { path: { articleId } },
+			});
 		} else {
-			await markArticleRead({ id: articleId }, urqlContextArticle);
+			await api.POST("/api/articles/{articleId}/read", {
+				params: { path: { articleId } },
+			});
 		}
 	};
 
 	const handleArticleClick = async (article: Article) => {
-		// Open article in new tab and mark as read if it's unread
 		window.open(article.url, "_blank", "noreferrer");
 		if (!article.isRead) {
 			onReadChange?.(article.id, true);
-			await markArticleRead({ id: article.id }, urqlContextArticle);
+			await api.POST("/api/articles/{articleId}/read", {
+				params: { path: { articleId: article.id } },
+			});
 		}
 	};
 

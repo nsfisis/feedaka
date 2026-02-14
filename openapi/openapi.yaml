@@ -1,0 +1,435 @@
+openapi: 3.0.0
+info:
+  title: Feedaka API
+  version: 0.0.0
+tags: []
+paths:
+  /api/articles/read:
+    get:
+      operationId: Articles_listReadArticles
+      parameters:
+        - name: feedId
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: first
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleConnection'
+  /api/articles/unread:
+    get:
+      operationId: Articles_listUnreadArticles
+      parameters:
+        - name: feedId
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: after
+          in: query
+          required: false
+          schema:
+            type: string
+          explode: false
+        - name: first
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleConnection'
+  /api/articles/{articleId}:
+    get:
+      operationId: Articles_getArticle
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/articles/{articleId}/read:
+    post:
+      operationId: Articles_markArticleRead
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/articles/{articleId}/unread:
+    post:
+      operationId: Articles_markArticleUnread
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/login:
+    post:
+      operationId: Auth_login
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+  /api/auth/logout:
+    post:
+      operationId: Auth_logout
+      parameters: []
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/me:
+    get:
+      operationId: Auth_getCurrentUser
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Access is unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/feeds:
+    get:
+      operationId: Feeds_listFeeds
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Feed'
+    post:
+      operationId: Feeds_addFeed
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '400':
+          description: The server could not understand the request due to invalid syntax.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddFeedRequest'
+  /api/feeds/{feedId}:
+    get:
+      operationId: Feeds_getFeed
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: Feeds_unsubscribeFeed
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/feeds/{feedId}/read:
+    post:
+      operationId: Feeds_markFeedRead
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/feeds/{feedId}/unread:
+    post:
+      operationId: Feeds_markFeedUnread
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '404':
+          description: The server cannot find the requested resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    AddFeedRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+    Article:
+      type: object
+      required:
+        - id
+        - feedId
+        - guid
+        - title
+        - url
+        - isRead
+        - feed
+      properties:
+        id:
+          type: string
+        feedId:
+          type: string
+        guid:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        isRead:
+          type: boolean
+        feed:
+          $ref: '#/components/schemas/ArticleFeed'
+    ArticleConnection:
+      type: object
+      required:
+        - articles
+        - pageInfo
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article'
+        pageInfo:
+          $ref: '#/components/schemas/PageInfo'
+    ArticleFeed:
+      type: object
+      required:
+        - id
+        - url
+        - title
+        - isSubscribed
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        isSubscribed:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+    Feed:
+      type: object
+      required:
+        - id
+        - url
+        - title
+        - fetchedAt
+        - isSubscribed
+        - unreadCount
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        fetchedAt:
+          type: string
+        isSubscribed:
+          type: boolean
+        unreadCount:
+          type: integer
+          format: int32
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      required:
+        - user
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+    PageInfo:
+      type: object
+      required:
+        - hasNextPage
+      properties:
+        hasNextPage:
+          type: boolean
+        endCursor:
+          type: string
+    User:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+servers:
+  - url: http://localhost:8080
+    description: Development server
+    variables: {}

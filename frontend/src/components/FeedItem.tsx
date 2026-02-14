@@ -1,33 +1,29 @@
 import { faCheck, faCircle, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useMutation } from "urql";
-import type { GetFeedsQuery } from "../graphql/generated/graphql";
-import {
-	MarkFeedReadDocument,
-	MarkFeedUnreadDocument,
-	UnsubscribeFeedDocument,
-} from "../graphql/generated/graphql";
+import type { components } from "../api/generated";
+import { api } from "../services/api-client";
 
-type Feed = NonNullable<GetFeedsQuery["feeds"]>[0];
+type Feed = components["schemas"]["Feed"];
 
 interface Props {
 	feed: Feed;
 	onFeedUnsubscribed?: () => void;
+	onFeedChanged?: () => void;
 }
 
-const urqlContextFeed = { additionalTypenames: ["Feed"] };
-
-export function FeedItem({ feed, onFeedUnsubscribed }: Props) {
-	const [, markFeedRead] = useMutation(MarkFeedReadDocument);
-	const [, markFeedUnread] = useMutation(MarkFeedUnreadDocument);
-	const [, unsubscribeFeed] = useMutation(UnsubscribeFeedDocument);
-
+export function FeedItem({ feed, onFeedUnsubscribed, onFeedChanged }: Props) {
 	const handleMarkAllRead = async (feedId: string) => {
-		await markFeedRead({ id: feedId }, urqlContextFeed);
+		await api.POST("/api/feeds/{feedId}/read", {
+			params: { path: { feedId } },
+		});
+		onFeedChanged?.();
 	};
 
 	const handleMarkAllUnread = async (feedId: string) => {
-		await markFeedUnread({ id: feedId }, urqlContextFeed);
+		await api.POST("/api/feeds/{feedId}/unread", {
+			params: { path: { feedId } },
+		});
+		onFeedChanged?.();
 	};
 
 	const handleUnsubscribeFeed = async (feedId: string) => {
@@ -35,7 +31,9 @@ export function FeedItem({ feed, onFeedUnsubscribed }: Props) {
 			"Are you sure you want to unsubscribe from this feed?",
 		);
 		if (confirmed) {
-			await unsubscribeFeed({ id: feedId }, urqlContextFeed);
+			await api.DELETE("/api/feeds/{feedId}", {
+				params: { path: { feedId } },
+			});
 			onFeedUnsubscribed?.();
 		}
 	};

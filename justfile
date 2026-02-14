@@ -18,5 +18,6 @@ check:
     cd backend && just check
 
 generate:
+    cd typespec && npm run generate
     cd frontend && npm run generate
     cd backend && just generate

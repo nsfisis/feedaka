@@ -1,18 +1,43 @@
-import { useQuery } from "urql";
-import { GetFeedsDocument } from "../graphql/generated/graphql";
+import { useCallback, useEffect, useState } from "react";
+import type { components } from "../api/generated";
+import { api } from "../services/api-client";
 import { FeedItem } from "./FeedItem";
+
+type Feed = components["schemas"]["Feed"];
 
 interface Props {
 	onFeedUnsubscribed?: () => void;
 }
 
-const urqlContextFeed = { additionalTypenames: ["Feed"] };
-
 export function FeedList({ onFeedUnsubscribed }: Props) {
-	const [{ data, fetching, error }] = useQuery({
-		query: GetFeedsDocument,
-		context: urqlContextFeed,
-	});
+	const [feeds, setFeeds] = useState<Feed[]>([]);
+	const [fetching, setFetching] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	const fetchFeeds = useCallback(async () => {
+		setFetching(true);
+		const { data } = await api.GET("/api/feeds");
+		if (data) {
+			setFeeds(data);
+			setError(null);
+		} else {
+			setError("Failed to load feeds");
+		}
+		setFetching(false);
+	}, []);
+
+	useEffect(() => {
+		fetchFeeds();
+	}, [fetchFeeds]);
+
+	const handleFeedUnsubscribed = () => {
+		fetchFeeds();
+		onFeedUnsubscribed?.();
+	};
+
+	const handleFeedChanged = () => {
+		fetchFeeds();
+	};
 
 	if (fetching) {
 		return (
@@ -24,11 +49,11 @@ export function FeedList({ onFeedUnsubscribed }: Props) {
 	if (error) {
 		return (
 			<div className="rounded-lg bg-red-50 p-4 text-sm text-red-600">
-				Error: {error.message}
+				Error: {error}
 			</div>
 		);
 	}
-	if (!data?.feeds || data.feeds.length === 0) {
+	if (feeds.length === 0) {
 		return (
 			<div className="py-8 text-center">
 				<p className="text-sm text-stone-400">No feeds added yet.</p>
@@ -38,11 +63,12 @@ export function FeedList({ onFeedUnsubscribed }: Props) {
 
 	return (
 		<div className="space-y-3">
-			{data.feeds.map((feed) => (
+			{feeds.map((feed) => (
 				<FeedItem
 					key={feed.id}
 					feed={feed}
-					onFeedUnsubscribed={onFeedUnsubscribed}
+					onFeedUnsubscribed={handleFeedUnsubscribed}
+					onFeedChanged={handleFeedChanged}
 				/>
 			))}
 		</div>
