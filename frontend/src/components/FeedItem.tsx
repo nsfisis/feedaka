@@ -1,29 +1,33 @@
 import { faCheck, faCircle, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { components } from "../api/generated";
+import { queryClient } from "../queryClient";
 import { api } from "../services/api-client";
 
 type Feed = components["schemas"]["Feed"];
 
 interface Props {
 	feed: Feed;
-	onFeedUnsubscribed?: () => void;
-	onFeedChanged?: () => void;
 }
 
-export function FeedItem({ feed, onFeedUnsubscribed, onFeedChanged }: Props) {
+export function FeedItem({ feed }: Props) {
+	const invalidate = () => {
+		queryClient.invalidateQueries({ queryKey: ["feeds"] });
+		queryClient.invalidateQueries({ queryKey: ["articles"] });
+	};
+
 	const handleMarkAllRead = async (feedId: string) => {
 		await api.POST("/api/feeds/{feedId}/read", {
 			params: { path: { feedId } },
 		});
-		onFeedChanged?.();
+		invalidate();
 	};
 
 	const handleMarkAllUnread = async (feedId: string) => {
 		await api.POST("/api/feeds/{feedId}/unread", {
 			params: { path: { feedId } },
 		});
-		onFeedChanged?.();
+		invalidate();
 	};
 
 	const handleUnsubscribeFeed = async (feedId: string) => {
@@ -34,7 +38,7 @@ export function FeedItem({ feed, onFeedUnsubscribed, onFeedChanged }: Props) {
 			await api.DELETE("/api/feeds/{feedId}", {
 				params: { path: { feedId } },
 			});
-			onFeedUnsubscribed?.();
+			invalidate();
 		}
 	};
 

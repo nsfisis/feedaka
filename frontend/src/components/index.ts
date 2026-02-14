@@ -1,8 +1,11 @@
 export { AddFeedForm } from "./AddFeedForm";
 export { ArticleList } from "./ArticleList";
+export { ErrorBoundary } from "./ErrorBoundary";
 export { FeedList } from "./FeedList";
 export { FeedSidebar } from "./FeedSidebar";
 export { Layout } from "./Layout";
+export { LoadingSpinner } from "./LoadingSpinner";
 export { MenuItem } from "./MenuItem";
 export { Navigation } from "./Navigation";
 export { ProtectedRoute } from "./ProtectedRoute";
+export { StoreInitializer } from "./StoreInitializer";

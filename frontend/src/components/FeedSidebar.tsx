@@ -1,9 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useAtomValue } from "jotai";
 import { useLocation, useSearch } from "wouter";
-import type { components } from "../api/generated";
-import { api } from "../services/api-client";
-
-type Feed = components["schemas"]["Feed"];
+import { feedsAtom } from "../atoms";
 
 interface Props {
 	basePath: string;
@@ -15,21 +12,7 @@ export function FeedSidebar({ basePath }: Props) {
 	const params = new URLSearchParams(search);
 	const selectedFeedId = params.get("feed");
 
-	const [feeds, setFeeds] = useState<Feed[]>([]);
-	const [fetching, setFetching] = useState(true);
-
-	const fetchFeeds = useCallback(async () => {
-		setFetching(true);
-		const { data } = await api.GET("/api/feeds");
-		if (data) {
-			setFeeds(data);
-		}
-		setFetching(false);
-	}, []);
-
-	useEffect(() => {
-		fetchFeeds();
-	}, [fetchFeeds]);
+	const { data: feeds } = useAtomValue(feedsAtom);
 
 	const handleSelect = (feedId: string | null) => {
 		if (feedId) {
@@ -58,9 +41,6 @@ export function FeedSidebar({ basePath }: Props) {
 						All feeds
 					</button>
 				</li>
-				{fetching && (
-					<li className="px-3 py-1.5 text-xs text-stone-400">Loading...</li>
-				)}
 				{feeds.map((feed) => (
 					<li key={feed.id}>
 						<button

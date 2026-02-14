@@ -5,12 +5,14 @@ import {
 	faRightFromBracket,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Link } from "wouter";
-import { useAuth } from "../contexts/AuthContext";
+import { isLoggedInAtom, logoutAtom } from "../atoms";
 import { MenuItem } from "./MenuItem";
 
 export function Navigation() {
-	const { logout, isLoggedIn } = useAuth();
+	const isLoggedIn = useAtomValue(isLoggedInAtom);
+	const logout = useSetAtom(logoutAtom);
 
 	const handleLogout = async () => {
 		await logout();

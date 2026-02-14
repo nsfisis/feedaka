@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsc -b && vite build",
-		"check": "biome check .",
+		"check": "biome check . && tsc --noEmit",
 		"dev": "vite",
 		"fix": "biome check --write .",
 		"generate": "openapi-typescript ../openapi/openapi.yaml -o src/api/generated.d.ts",
@@ -16,6 +16,9 @@
 		"@fortawesome/free-solid-svg-icons": "^6.7.2",
 		"@fortawesome/react-fontawesome": "^0.2.6",
 		"@tailwindcss/vite": "^4.1.17",
+		"@tanstack/query-core": "^5.90.20",
+		"jotai": "^2.17.1",
+		"jotai-tanstack-query": "^0.11.0",
 		"openapi-fetch": "^0.17.0",
 		"react": "^19.2.1",
 		"react-dom": "^19.2.1",

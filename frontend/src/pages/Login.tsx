@@ -1,13 +1,14 @@
+import { useSetAtom } from "jotai";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "../contexts/AuthContext";
+import { loginAtom } from "../atoms";
 
 export function Login() {
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const { login } = useAuth();
+	const login = useSetAtom(loginAtom);
 	const [, setLocation] = useLocation();
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -15,13 +16,14 @@ export function Login() {
 		setError("");
 		setIsLoading(true);
 
-		const result = await login(username, password);
-		if (result.success) {
+		try {
+			await login({ username, password });
 			setLocation("/");
-		} else {
-			setError(result.error);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Login failed");
+		} finally {
+			setIsLoading(false);
 		}
-		setIsLoading(false);
 	};
 
 	return (

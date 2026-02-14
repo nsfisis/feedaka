@@ -1,13 +1,10 @@
 import { faPlus, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useState } from "react";
+import { queryClient } from "../queryClient";
 import { api } from "../services/api-client";
 
-interface Props {
-	onFeedAdded?: () => void;
-}
-
-export function AddFeedForm({ onFeedAdded }: Props) {
+export function AddFeedForm() {
 	const [url, setUrl] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [fetching, setFetching] = useState(false);
@@ -27,7 +24,7 @@ export function AddFeedForm({ onFeedAdded }: Props) {
 				setError(fetchError.message);
 			} else if (data) {
 				setUrl("");
-				onFeedAdded?.();
+				queryClient.invalidateQueries({ queryKey: ["feeds"] });
 			}
 		} catch (error) {
 			setError(

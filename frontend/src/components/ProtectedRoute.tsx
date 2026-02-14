@@ -1,13 +1,15 @@
+import { useAtomValue } from "jotai";
 import type { ReactNode } from "react";
 import { Redirect } from "wouter";
-import { useAuth } from "../contexts/AuthContext";
+import { authLoadingAtom, isLoggedInAtom } from "../atoms";
 
 interface Props {
 	children: ReactNode;
 }
 
 export function ProtectedRoute({ children }: Props) {
-	const { isLoggedIn, isLoading } = useAuth();
+	const isLoggedIn = useAtomValue(isLoggedInAtom);
+	const isLoading = useAtomValue(authLoadingAtom);
 
 	if (isLoading) {
 		return (

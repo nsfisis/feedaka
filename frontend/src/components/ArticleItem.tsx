@@ -1,6 +1,7 @@
 import { faCheck, faCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import type { components } from "../api/generated";
+import { queryClient } from "../queryClient";
 import { api } from "../services/api-client";
 
 type Article = components["schemas"]["Article"];
@@ -11,6 +12,11 @@ interface Props {
 }
 
 export function ArticleItem({ article, onReadChange }: Props) {
+	const invalidate = () => {
+		queryClient.invalidateQueries({ queryKey: ["feeds"] });
+		queryClient.invalidateQueries({ queryKey: ["articles"] });
+	};
+
 	const handleToggleRead = async (
 		articleId: string,
 		isCurrentlyRead: boolean,
@@ -27,6 +33,7 @@ export function ArticleItem({ article, onReadChange }: Props) {
 				params: { path: { articleId } },
 			});
 		}
+		invalidate();
 	};
 
 	const handleArticleClick = async (article: Article) => {
@@ -36,6 +43,7 @@ export function ArticleItem({ article, onReadChange }: Props) {
 			await api.POST("/api/articles/{articleId}/read", {
 				params: { path: { articleId: article.id } },
 			});
+			invalidate();
 		}
 	};
 
