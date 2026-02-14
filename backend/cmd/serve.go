@@ -25,11 +25,11 @@ import (
 
 func fetchOneFeed(feedID int64, url string, ctx context.Context, queries *db.Queries) error {
 	log.Printf("Fetching %s...\n", url)
-	f, err := feed.Fetch(ctx, url)
+	result, err := feed.Fetch(ctx, url)
 	if err != nil {
 		return err
 	}
-	return feed.Sync(ctx, queries, feedID, f)
+	return feed.Sync(ctx, queries, feedID, result.Feed)
 }
 
 func listFeedsToBeFetched(ctx context.Context, queries *db.Queries) (map[int64]string, error) {
