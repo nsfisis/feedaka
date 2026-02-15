@@ -4,15 +4,20 @@ import { feedsAtom } from "../atoms";
 
 interface Props {
 	basePath: string;
+	isReadView?: boolean;
 }
 
-export function FeedSidebar({ basePath }: Props) {
+export function FeedSidebar({ basePath, isReadView = false }: Props) {
 	const search = useSearch();
 	const [, setLocation] = useLocation();
 	const params = new URLSearchParams(search);
 	const selectedFeedId = params.get("feed");
 
-	const { data: feeds } = useAtomValue(feedsAtom);
+	const { data: allFeeds } = useAtomValue(feedsAtom);
+
+	const feeds = isReadView
+		? allFeeds
+		: allFeeds.filter((feed) => feed.unreadCount > 0);
 
 	const handleSelect = (feedId: string | null) => {
 		if (feedId) {
@@ -53,7 +58,7 @@ export function FeedSidebar({ basePath }: Props) {
 							}`}
 						>
 							<span className="min-w-0 truncate">{feed.title}</span>
-							{feed.unreadCount > 0 && (
+							{!isReadView && feed.unreadCount > 0 && (
 								<span className="ml-2 shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-700">
 									{feed.unreadCount}
 								</span>

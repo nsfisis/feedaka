@@ -28,7 +28,7 @@ export function ReadArticles() {
 		<div className="flex gap-8">
 			<ErrorBoundary>
 				<Suspense fallback={<LoadingSpinner />}>
-					<FeedSidebar basePath="/read" />
+					<FeedSidebar basePath="/read" isReadView />
 				</Suspense>
 			</ErrorBoundary>
 			<div className="min-w-0 flex-1">
