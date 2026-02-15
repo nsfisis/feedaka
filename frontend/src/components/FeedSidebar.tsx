@@ -23,7 +23,7 @@ export function FeedSidebar({ basePath }: Props) {
 	};
 
 	return (
-		<nav className="w-56 shrink-0">
+		<nav className="hidden w-56 shrink-0 md:block">
 			<h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400">
 				Feeds
 			</h2>
