@@ -3,11 +3,11 @@ FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm install
+RUN npm ci
 
+COPY openapi/openapi.yaml /openapi/openapi.yaml
 COPY frontend/ ./
-COPY graphql/schema.graphql src/graphql/schema.graphql
-RUN npm run build
+RUN npm run generate && npm run build
 
 ##########################################
 FROM golang:1.24 AS backend-builder
