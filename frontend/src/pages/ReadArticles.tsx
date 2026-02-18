@@ -26,11 +26,13 @@ export function ReadArticles() {
 
 	return (
 		<div className="flex gap-8">
-			<ErrorBoundary>
-				<Suspense fallback={<LoadingSpinner />}>
-					<FeedSidebar basePath="/read" isReadView />
-				</Suspense>
-			</ErrorBoundary>
+			<div className="hidden w-56 shrink-0 md:block">
+				<ErrorBoundary>
+					<Suspense fallback={<LoadingSpinner />}>
+						<FeedSidebar basePath="/read" isReadView />
+					</Suspense>
+				</ErrorBoundary>
+			</div>
 			<div className="min-w-0 flex-1">
 				<ReadArticleList feedId={feedId} />
 			</div>
