@@ -1,6 +1,8 @@
 import { useAtomValue } from "jotai";
+import { Suspense } from "react";
 import { useLocation, useSearch } from "wouter";
 import { feedsAtom } from "../atoms";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 interface Props {
 	basePath: string;
@@ -12,12 +14,6 @@ export function FeedSidebar({ basePath, isReadView = false }: Props) {
 	const [, setLocation] = useLocation();
 	const params = new URLSearchParams(search);
 	const selectedFeedId = params.get("feed");
-
-	const { data: allFeeds } = useAtomValue(feedsAtom);
-
-	const feeds = isReadView
-		? allFeeds
-		: allFeeds.filter((feed) => feed.unreadCount > 0);
 
 	const handleSelect = (feedId: string | null) => {
 		if (feedId) {
@@ -46,27 +42,57 @@ export function FeedSidebar({ basePath, isReadView = false }: Props) {
 						All feeds
 					</button>
 				</li>
-				{feeds.map((feed) => (
-					<li key={feed.id}>
-						<button
-							type="button"
-							onClick={() => handleSelect(feed.id)}
-							className={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
-								selectedFeedId === feed.id
-									? "bg-stone-200 font-medium text-stone-900"
-									: "text-stone-600 hover:bg-stone-100"
-							}`}
-						>
-							<span className="min-w-0 truncate">{feed.title}</span>
-							{!isReadView && feed.unreadCount > 0 && (
-								<span className="ml-2 shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-700">
-									{feed.unreadCount}
-								</span>
-							)}
-						</button>
-					</li>
-				))}
+				<ErrorBoundary>
+					<Suspense>
+						<FeedListItems
+							isReadView={isReadView}
+							selectedFeedId={selectedFeedId}
+							onSelect={handleSelect}
+						/>
+					</Suspense>
+				</ErrorBoundary>
 			</ul>
 		</nav>
+	);
+}
+
+function FeedListItems({
+	isReadView,
+	selectedFeedId,
+	onSelect,
+}: {
+	isReadView: boolean;
+	selectedFeedId: string | null;
+	onSelect: (feedId: string | null) => void;
+}) {
+	const { data: allFeeds } = useAtomValue(feedsAtom);
+
+	const feeds = isReadView
+		? allFeeds
+		: allFeeds.filter((feed) => feed.unreadCount > 0);
+
+	return (
+		<>
+			{feeds.map((feed) => (
+				<li key={feed.id}>
+					<button
+						type="button"
+						onClick={() => onSelect(feed.id)}
+						className={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
+							selectedFeedId === feed.id
+								? "bg-stone-200 font-medium text-stone-900"
+								: "text-stone-600 hover:bg-stone-100"
+						}`}
+					>
+						<span className="min-w-0 truncate">{feed.title}</span>
+						{!isReadView && feed.unreadCount > 0 && (
+							<span className="ml-2 shrink-0 rounded-full bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-700">
+								{feed.unreadCount}
+							</span>
+						)}
+					</button>
+				</li>
+			))}
+		</>
 	);
 }

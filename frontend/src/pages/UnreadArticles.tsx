@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { Suspense, useEffect } from "react";
+import { useEffect } from "react";
 import { useSearch } from "wouter";
 import {
 	articleFeedFilterAtom,
@@ -7,9 +7,7 @@ import {
 	articleViewAtom,
 } from "../atoms";
 import { ArticleList } from "../components/ArticleList";
-import { ErrorBoundary } from "../components/ErrorBoundary";
 import { FeedSidebar } from "../components/FeedSidebar";
-import { LoadingSpinner } from "../components/LoadingSpinner";
 
 export function UnreadArticles() {
 	const search = useSearch();
@@ -27,11 +25,7 @@ export function UnreadArticles() {
 	return (
 		<div className="flex gap-8">
 			<div className="hidden w-56 shrink-0 md:block">
-				<ErrorBoundary>
-					<Suspense fallback={<LoadingSpinner />}>
-						<FeedSidebar basePath="/unread" />
-					</Suspense>
-				</ErrorBoundary>
+				<FeedSidebar basePath="/unread" />
 			</div>
 			<div className="min-w-0 flex-1">
 				<UnreadArticleList feedId={feedId} />
