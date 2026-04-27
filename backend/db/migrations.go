@@ -14,7 +14,7 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
-const EXPECTED_SCHEMA_VERSION = 4
+const EXPECTED_SCHEMA_VERSION = 7
 
 type Migration struct {
 	Version  int

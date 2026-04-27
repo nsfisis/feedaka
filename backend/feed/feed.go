@@ -76,25 +76,29 @@ func discoverFeedURL(ctx context.Context, rawURL string) (string, error) {
 	return feedURL, nil
 }
 
-func Sync(ctx context.Context, queries *db.Queries, feedID int64, f *gofeed.Feed) error {
+// Sync upserts the parsed feed's items into the database and returns the
+// number of newly inserted articles. The caller uses that count to drive the
+// adaptive fetch interval.
+func Sync(ctx context.Context, queries *db.Queries, feedID int64, f *gofeed.Feed) (int, error) {
 	err := queries.UpdateFeedMetadata(ctx, db.UpdateFeedMetadataParams{
 		Title:     f.Title,
 		FetchedAt: time.Now().UTC().Format(time.RFC3339),
 		ID:        feedID,
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	guids, err := queries.GetArticleGUIDsByFeed(ctx, feedID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	existingFeedGUIDs := make(map[string]bool, len(guids))
 	for _, guid := range guids {
 		existingFeedGUIDs[guid] = true
 	}
 
+	newCount := 0
 	for _, item := range f.Items {
 		if existingFeedGUIDs[item.GUID] {
 			err := queries.UpdateArticle(ctx, db.UpdateArticleParams{
@@ -104,12 +108,12 @@ func Sync(ctx context.Context, queries *db.Queries, feedID int64, f *gofeed.Feed
 				Guid:   item.GUID,
 			})
 			if err != nil {
-				return err
+				return newCount, err
 			}
 		} else {
 			exists, err := queries.CheckArticleExistsByGUID(ctx, item.GUID)
 			if err != nil {
-				return err
+				return newCount, err
 			}
 			if exists == 1 {
 				continue
@@ -122,9 +126,10 @@ func Sync(ctx context.Context, queries *db.Queries, feedID int64, f *gofeed.Feed
 				IsRead: 0,
 			})
 			if err != nil {
-				return err
+				return newCount, err
 			}
+			newCount++
 		}
 	}
-	return nil
+	return newCount, nil
 }

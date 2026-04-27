@@ -8,12 +8,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Feeds
 CREATE TABLE IF NOT EXISTS feeds (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    url           TEXT NOT NULL,
-    title         TEXT NOT NULL,
-    fetched_at    TEXT NOT NULL,
-    is_subscribed INTEGER NOT NULL DEFAULT 1,
-    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    url                    TEXT NOT NULL,
+    title                  TEXT NOT NULL,
+    fetched_at             TEXT NOT NULL,
+    is_subscribed          INTEGER NOT NULL DEFAULT 1,
+    user_id                INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    fetch_interval_seconds INTEGER NOT NULL DEFAULT 3600
 );
 
 -- Articles

@@ -14,12 +14,13 @@ type Article struct {
 }
 
 type Feed struct {
-	ID           int64
-	Url          string
-	Title        string
-	FetchedAt    string
-	IsSubscribed int64
-	UserID       int64
+	ID                   int64
+	Url                  string
+	Title                string
+	FetchedAt            string
+	IsSubscribed         int64
+	UserID               int64
+	FetchIntervalSeconds int64
 }
 
 type User struct {

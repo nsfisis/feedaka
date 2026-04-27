@@ -1,0 +1,1 @@
+ALTER TABLE feeds ADD COLUMN fetch_interval_seconds INTEGER NOT NULL DEFAULT 3600;

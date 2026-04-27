@@ -23,46 +23,62 @@ import (
 	"undef.ninja/x/feedaka/feed"
 )
 
-func fetchOneFeed(feedID int64, url string, ctx context.Context, queries *db.Queries) error {
-	log.Printf("Fetching %s...\n", url)
-	result, err := feed.Fetch(ctx, url)
+const (
+	minFetchIntervalSeconds = 60 * 60      // 1 hour
+	maxFetchIntervalSeconds = 24 * 60 * 60 // 1 day
+)
+
+// nextFetchInterval adapts the per-feed poll interval based on whether the
+// last fetch yielded new articles. Active feeds converge toward the floor
+// quickly (halving) while quiet feeds back off gently (1.5x) so a brief lull
+// doesn't push the interval to the ceiling.
+func nextFetchInterval(current int64, hadNewArticles bool) int64 {
+	var next int64
+	if hadNewArticles {
+		next = current / 2
+	} else {
+		next = current * 3 / 2
+	}
+	if next < minFetchIntervalSeconds {
+		next = minFetchIntervalSeconds
+	}
+	if next > maxFetchIntervalSeconds {
+		next = maxFetchIntervalSeconds
+	}
+	return next
+}
+
+func fetchOneFeed(ctx context.Context, queries *db.Queries, f db.GetFeedsToFetchRow) error {
+	log.Printf("Fetching %s...\n", f.Url)
+	result, err := feed.Fetch(ctx, f.Url)
 	if err != nil {
 		return err
 	}
-	return feed.Sync(ctx, queries, feedID, result.Feed)
-}
-
-func listFeedsToBeFetched(ctx context.Context, queries *db.Queries) (map[int64]string, error) {
-	feeds, err := queries.GetFeedsToFetch(ctx)
+	newCount, err := feed.Sync(ctx, queries, f.ID, result.Feed)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	result := make(map[int64]string)
-	for _, feed := range feeds {
-		fetchedAtTime, err := time.Parse(time.RFC3339, feed.FetchedAt)
-		if err != nil {
-			log.Fatal(err)
+	next := nextFetchInterval(f.FetchIntervalSeconds, newCount > 0)
+	if next != f.FetchIntervalSeconds {
+		if err := queries.UpdateFeedFetchInterval(ctx, db.UpdateFeedFetchIntervalParams{
+			FetchIntervalSeconds: next,
+			ID:                   f.ID,
+		}); err != nil {
+			return err
 		}
-		now := time.Now().UTC()
-		if now.Sub(fetchedAtTime).Minutes() <= 10 {
-			continue
-		}
-		result[feed.ID] = feed.Url
 	}
-	return result, nil
+	return nil
 }
 
 func fetchAllFeeds(ctx context.Context, queries *db.Queries) error {
-	feeds, err := listFeedsToBeFetched(ctx, queries)
+	feeds, err := queries.GetFeedsToFetch(ctx)
 	if err != nil {
 		return err
 	}
 
 	var result *multierror.Error
-	for feedID, url := range feeds {
-		err := fetchOneFeed(feedID, url, ctx, queries)
-		if err != nil {
+	for _, f := range feeds {
+		if err := fetchOneFeed(ctx, queries, f); err != nil {
 			result = multierror.Append(result, err)
 		}
 		time.Sleep(5 * time.Second)
@@ -121,7 +137,7 @@ func RunServe(database *sql.DB, cfg *config.Config, publicFS embed.FS) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	scheduled(ctx, 1*time.Hour, func() {
+	scheduled(ctx, 30*time.Minute, func() {
 		err := fetchAllFeeds(ctx, queries)
 		if err != nil {
 			log.Printf("Failed to fetch feeds: %v\n", err)

@@ -12,7 +12,7 @@ import (
 const createFeed = `-- name: CreateFeed :one
 INSERT INTO feeds (url, title, fetched_at, user_id)
 VALUES (?, ?, ?, ?)
-RETURNING id, url, title, fetched_at, is_subscribed, user_id
+RETURNING id, url, title, fetched_at, is_subscribed, user_id, fetch_interval_seconds
 `
 
 type CreateFeedParams struct {
@@ -37,6 +37,7 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		&i.FetchedAt,
 		&i.IsSubscribed,
 		&i.UserID,
+		&i.FetchIntervalSeconds,
 	)
 	return i, err
 }
@@ -52,7 +53,7 @@ func (q *Queries) DeleteFeed(ctx context.Context, id int64) error {
 }
 
 const getFeed = `-- name: GetFeed :one
-SELECT id, url, title, fetched_at, is_subscribed, user_id
+SELECT id, url, title, fetched_at, is_subscribed, user_id, fetch_interval_seconds
 FROM feeds
 WHERE id = ?
 `
@@ -67,12 +68,13 @@ func (q *Queries) GetFeed(ctx context.Context, id int64) (Feed, error) {
 		&i.FetchedAt,
 		&i.IsSubscribed,
 		&i.UserID,
+		&i.FetchIntervalSeconds,
 	)
 	return i, err
 }
 
 const getFeedByURL = `-- name: GetFeedByURL :one
-SELECT id, url, title, fetched_at, is_subscribed, user_id
+SELECT id, url, title, fetched_at, is_subscribed, user_id, fetch_interval_seconds
 FROM feeds
 WHERE url = ? AND user_id = ?
 `
@@ -92,6 +94,7 @@ func (q *Queries) GetFeedByURL(ctx context.Context, arg GetFeedByURLParams) (Fee
 		&i.FetchedAt,
 		&i.IsSubscribed,
 		&i.UserID,
+		&i.FetchIntervalSeconds,
 	)
 	return i, err
 }
@@ -133,7 +136,7 @@ func (q *Queries) GetFeedUnreadCounts(ctx context.Context, userID int64) ([]GetF
 }
 
 const getFeeds = `-- name: GetFeeds :many
-SELECT id, url, title, fetched_at, is_subscribed, user_id
+SELECT id, url, title, fetched_at, is_subscribed, user_id, fetch_interval_seconds
 FROM feeds
 WHERE is_subscribed = 1 AND user_id = ?
 ORDER BY id
@@ -155,6 +158,7 @@ func (q *Queries) GetFeeds(ctx context.Context, userID int64) ([]Feed, error) {
 			&i.FetchedAt,
 			&i.IsSubscribed,
 			&i.UserID,
+			&i.FetchIntervalSeconds,
 		); err != nil {
 			return nil, err
 		}
@@ -170,16 +174,18 @@ func (q *Queries) GetFeeds(ctx context.Context, userID int64) ([]Feed, error) {
 }
 
 const getFeedsToFetch = `-- name: GetFeedsToFetch :many
-SELECT id, url, fetched_at, user_id
+SELECT id, url, fetched_at, user_id, fetch_interval_seconds
 FROM feeds
 WHERE is_subscribed = 1
+  AND datetime(fetched_at, '+' || fetch_interval_seconds || ' seconds') <= datetime('now')
 `
 
 type GetFeedsToFetchRow struct {
-	ID        int64
-	Url       string
-	FetchedAt string
-	UserID    int64
+	ID                   int64
+	Url                  string
+	FetchedAt            string
+	UserID               int64
+	FetchIntervalSeconds int64
 }
 
 func (q *Queries) GetFeedsToFetch(ctx context.Context) ([]GetFeedsToFetchRow, error) {
@@ -196,6 +202,7 @@ func (q *Queries) GetFeedsToFetch(ctx context.Context) ([]GetFeedsToFetchRow, er
 			&i.Url,
 			&i.FetchedAt,
 			&i.UserID,
+			&i.FetchIntervalSeconds,
 		); err != nil {
 			return nil, err
 		}
@@ -218,6 +225,22 @@ WHERE id = ?
 
 func (q *Queries) UnsubscribeFeed(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, unsubscribeFeed, id)
+	return err
+}
+
+const updateFeedFetchInterval = `-- name: UpdateFeedFetchInterval :exec
+UPDATE feeds
+SET fetch_interval_seconds = ?
+WHERE id = ?
+`
+
+type UpdateFeedFetchIntervalParams struct {
+	FetchIntervalSeconds int64
+	ID                   int64
+}
+
+func (q *Queries) UpdateFeedFetchInterval(ctx context.Context, arg UpdateFeedFetchIntervalParams) error {
+	_, err := q.db.ExecContext(ctx, updateFeedFetchInterval, arg.FetchIntervalSeconds, arg.ID)
 	return err
 }
 

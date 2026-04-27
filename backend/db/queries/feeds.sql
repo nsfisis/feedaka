@@ -1,10 +1,10 @@
 -- name: GetFeed :one
-SELECT id, url, title, fetched_at, is_subscribed, user_id
+SELECT id, url, title, fetched_at, is_subscribed, user_id, fetch_interval_seconds
 FROM feeds
 WHERE id = ?;
 
 -- name: GetFeeds :many
-SELECT id, url, title, fetched_at, is_subscribed, user_id
+SELECT id, url, title, fetched_at, is_subscribed, user_id, fetch_interval_seconds
 FROM feeds
 WHERE is_subscribed = 1 AND user_id = ?
 ORDER BY id;
@@ -24,14 +24,20 @@ DELETE FROM feeds
 WHERE id = ?;
 
 -- name: GetFeedByURL :one
-SELECT id, url, title, fetched_at, is_subscribed, user_id
+SELECT id, url, title, fetched_at, is_subscribed, user_id, fetch_interval_seconds
 FROM feeds
 WHERE url = ? AND user_id = ?;
 
 -- name: GetFeedsToFetch :many
-SELECT id, url, fetched_at, user_id
+SELECT id, url, fetched_at, user_id, fetch_interval_seconds
 FROM feeds
-WHERE is_subscribed = 1;
+WHERE is_subscribed = 1
+  AND datetime(fetched_at, '+' || fetch_interval_seconds || ' seconds') <= datetime('now');
+
+-- name: UpdateFeedFetchInterval :exec
+UPDATE feeds
+SET fetch_interval_seconds = ?
+WHERE id = ?;
 
 -- name: UnsubscribeFeed :exec
 UPDATE feeds

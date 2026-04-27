@@ -61,7 +61,7 @@ func (h *Handler) FeedsAddFeed(ctx context.Context, request FeedsAddFeedRequestO
 		return FeedsAddFeed400JSONResponse{Message: fmt.Sprintf("failed to insert feed: %v", err)}, nil
 	}
 
-	if err := feed.Sync(ctx, h.Queries, dbFeed.ID, result.Feed); err != nil {
+	if _, err := feed.Sync(ctx, h.Queries, dbFeed.ID, result.Feed); err != nil {
 		return FeedsAddFeed400JSONResponse{Message: fmt.Sprintf("failed to sync articles: %v", err)}, nil
 	}
 
